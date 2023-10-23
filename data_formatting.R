@@ -6,6 +6,7 @@
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
+#' @param proband 'Proband' or 'All' variable to help select the patients needed.
 #'
 #' @return dataset ready for analysis
 #'
@@ -13,15 +14,18 @@
 #'
 #'
 #' @export
-formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL) {
+formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL) {
   
   ### Function checks
   ## Ensure type of diabetes is chosen
-  if (is.null(type)) {stop("'type' of diabetes must be defined; 'Type 1' or 'Type 2'")}
-  if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined; 'Type 1' or 'Type 2'.")}
+  if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'")}
+  if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
   ## Ensure ethnicity is chosen 
-  if (is.null(ethnicity)) {stop("'ethnicity' must be defined; 'White' or 'Non-White'")}
-  if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined; 'White' or 'Non-White'.")}
+  if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'")}
+  if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
+  ## Ensure proband is chosen correctly
+  if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'")}
+  if (!(proband %in% c("Proband", "All"))) {("'ethnicity' must be defined: 'Proband' or 'All'.")}
   
   ### Libraries needed
   require(tidyverse)
@@ -311,8 +315,21 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   #:----- Proband
   
   ### Needs to be done, but require the specific variable
+  dataset_formatted <- dataset_formatted %>%
+    mutate(proband = ifelse(endsWith(MODYNo, "01"), "Proband", "Not Proband"))
   
   
+  if (diagnosis == TRUE) {
+    print("### Probands end with 01 ###")
+    print("###############################")
+    print(table(dataset_formatted$proband, useNA = "ifany"))
+  }
+  
+  ## Select the specific Proband choice made
+  if (proband == "Proband") {
+    dataset_formatted <- dataset_formatted %>%
+      filter(proband == "Proband")
+  }
   
   
   
