@@ -18,13 +18,13 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   
   ### Function checks
   ## Ensure type of diabetes is chosen
-  if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'")}
+  if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
   if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
   ## Ensure ethnicity is chosen 
-  if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'")}
+  if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   ## Ensure proband is chosen correctly
-  if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'")}
+  if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
   if (!(proband %in% c("Proband", "All"))) {("'ethnicity' must be defined: 'Proband' or 'All'.")}
   
   ### Libraries needed
