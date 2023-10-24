@@ -20,6 +20,7 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   ## Ensure type of diabetes is chosen
   if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
   if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
+  
   ## Ensure ethnicity is chosen 
   if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
@@ -45,6 +46,10 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
     stop("There are repeated individuals based on the MODY number")
   }
   
+  ###
+  # Make sure to remove case-control patients
+  
+  #### NEEDS TO BE DONE!!
   
   ###
   
@@ -86,10 +91,13 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   dataset_formatted <- dataset_formatted %>%
     mutate(progressed_to_insulin = ifelse(
       # rules for Type 1: insulin treated within 6 months TRUE, OR, insulin treated within 6 months FALSE but initial treatment is insulin
-      InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
+      
+      #### Insulin treated within 6 months is FALSE & Time until insulin Rx <=6 (months)
+      
+      InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS" | !is.na(`Initial Trtmnt`))),
       "Type 1",
       # rules for Type 2: not specified
-      stop("Rules for defining 'Type 2' not defined yet.")
+      "Type 2"
     ))
   
   if (diagnosis == TRUE) {
@@ -195,12 +203,15 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   } 
   ###
   
-  ## Define ethnicity types from subtypes
+  ## Define ethnicity types from subtypes: white, african black, south asian, east asian, hispanic (south/center america), arabic, indigenous (america), indigenous (australasia), mixed
   dataset_formatted$ethnicity_clean <- "Not used"
   dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_white] <- "White"
   dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_black] <- "Black"
-  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_asian] <- "Asian"
+  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_asian] <- "South Asian"
   dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_mixed] <- "Mixed"
+  
+  dataset_formatted <- dataset_formatted %>%
+    mutate(ethnicity_clean = factor(ethnicity_clean, levels = c("White", "Black", "South Asian", "East Asian", "Hispanic", "Arabic", "Mixed", "Indigenous (America)", "Indigenous (Australasia)")))
   
   
   if (diagnosis == TRUE) {
@@ -215,7 +226,7 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
       filter(ethnicity_clean == "White")
   } else if(ethnicity == "Non-White") {
     dataset_formatted <- dataset_formatted %>%
-      filter(ethnicity_clean == "Black" | ethnicity_clean == "Asian" | ethnicity_clean == "Mixed")
+      filter(ethnicity_clean == "Black" | ethnicity_clean == "South Asian" | ethnicity_clean == "Mixed")
   }
   
   
@@ -332,6 +343,11 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   }
   
   
+  ###
+  # Maybe add relationship to include non-blood relation
+  ###
+  
+  
   
   #:------------------------------------------------------------------------
   ####
@@ -412,7 +428,7 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   ## Only do this for Type 1
   if (type == "Type 1") {
     
-    
+    ## three variables, one for each each ab, 0 or 1 or NA
     
   }
   
@@ -428,8 +444,8 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   ####
   
   
-  
-  
+
+    
   
   
   
