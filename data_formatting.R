@@ -3,6 +3,7 @@
 #' This file contains the function needed for formatting the referral data.
 #'
 #' @param dataset original unformatted referral dataset
+#' @param dataset.case_control case-control dataset which patients that need to be removed.
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
@@ -14,7 +15,7 @@
 #'
 #'
 #' @export
-formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL) {
+formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL) {
   
   ### Function checks
   ## Ensure type of diabetes is chosen
@@ -48,8 +49,10 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   
   ###
   # Make sure to remove case-control patients
-  
-  #### NEEDS TO BE DONE!!
+  if (sum(dataset_formatted$MODYNo %in% dataset.case_control$id) > 0) {
+    dataset_formatted <- dataset_formatted %>%
+      filter(!(MODYNo %in% dataset.case_control$id))
+  }
   
   ###
   
@@ -64,19 +67,65 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   }
   
   
+  #:----- Status specification
+  
+  #####
+  # Just a check for whether there is a new type of reported status that we haven't seen yet
+  # This is being added because we will be rerunning this on newer versions of the dataset which may have new status
+  status_test <- dataset_formatted$Status %in% c("Autoimmune disease", "Autoimmune Disease", "Diabetes & Deafness", "Diabetes & liver adenomas", "Diabetes & Renal Cysts", 
+                                                 "Diabetes & Renal Developmental abnormality", "Diabetes & Renal Developmental Abnormality", "Diabetes & Renal Disease",
+                                                 "Diabetes and Lipodystrophy", "Diabetic", "Exercise induced hypoglycaemia", "FBG > 6.0", "FBG > 6.0\"", "GDM", 
+                                                 "Genital Tract Malformations", "Genital Tract Malformations & Diabetes", "HbA1c > 39", "HbA1c > 39 mmol/mol", 
+                                                 "HbA1C > 39 mmol/mol", "HbA1c > 39mmol/mmol", "Hba1c > 39mmol/mol", "HbA1c > 39mmol/mol", "HbA1c > 39mol/mol", 
+                                                 "HbA1c > 42 mmol/mol", "HbA1c >37", "HbA1c >38mmol/mol", "HbA1c >39", "HbA1c >39mmol/l", "HbA1c >39mmol/mol", 
+                                                 "HbA1c >40mmol/mol", "Hba1c 38mmol/mol", "HbA1c 38mmol/mol", "Hyperinsulinism", "hyperinsulinism progressed to diabetes", 
+                                                 "Hyperinsulinism progressed to diabetes", "Hypoglycaemia", "Hypoglycaemia progressed to diabetes", 
+                                                 "Hypoglycaemia progressed to IGT", "Hypoglycaemia progressed to Remitting diabetes", "Impaired fasting glycaemia", 
+                                                 "Impaired Glucose Tolerance", "Insulin Resistance", "Insulinoma", "IPEX", "Kabuki", "Kabuki syndrome", 
+                                                 "Ketosis prone diabetes", "Ketosis Prone diabetes", "Lipodystrophy", "MDP Syndrome", "nephrocalcinosis & diabetes", 
+                                                 "Not Diabetic", "PNDM", "Raised HbA1c", "Raised HbA1c >5.7", "Relapsing/Remitting Diabetes", "Remitting Diabetes", 
+                                                 "Renal Cysts & Diabetes", "Renal Cysts no Diabetes", "Renal Developmental abnormality", "Renal Developmental Abnormality", 
+                                                 "Renal X", "TNDM", "TRMA", "Unaffected", "Unknown", "Wolfram Syndrome", NA)
+  
+  # If there are other status, stop the function so that it can be fixed
+  if (sum(status_test) != nrow(dataset_formatted)) {
+    print("There is new status which were not considered:")
+    print(unique(dataset_formatted$Status[!status_test]))
+    stop()
+  }
+  ####
+  
+  # Set 'Keep' or 'Remove' to those with the status we want/don't, respectively
+  dataset_formatted <- dataset_formatted %>%
+    mutate(Status_interim = ifelse(!(Status %in% c("Diabetic", "GDM", "FBG > 6.0", "Impaired Glucose Tolerance", "FBG > 6.0\"", "Impaired fasting glycaemia",
+                                                   "Renal Cysts & Diabetes", "Diabetes & Renal Cysts", "Hyperinsulinism progressed to diabetes", "hyperinsulinism progressed to diabetes")), "Remove", "Keep"))
+  
+  
+  if (diagnosis == TRUE) {
+    print("### Exclude specific status ###")
+    print(dataset_formatted %>% filter(Status_interim == "Remove") %>% select(Status) %>% unique() %>% unlist() %>% as.vector())
+    print("###############################")
+    print(table(dataset_formatted$Status, dataset_formatted$Status_interim, useNA = "ifany"))
+    print("###############################")
+    print(table(dataset_formatted$Status_interim))
+  }
+  
+  # Remove the rows not needed
+  dataset_formatted <- dataset_formatted %>%
+    filter(Status_interim == "Keep") %>%
+    select(-Status_interim)
+  
   #:----- Split between Type 1 or Type 2 people
   
   #####
   # Just a check for whether there is a new type of reported initial treatments that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new initial treatments
- initial_treatment_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diazoxide + nifedipine", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", 
-                                                                     "Gliclazide", "Glucosae", "glucose", "Glucose", "Humulin", "Ins dur preg", "ins during preg", 
-                                                                     "Ins during preg", "Ins in preg", "insulin", "Insulin", "INSULIN", "insulin during preg", 
-                                                                     "Insulin during pregnancy", "insulin pump", "Keto diet", "MDF", "MDI", "metformin", "Metformin", 
-                                                                     "Metformin 500mg + diet", "Mixtard BD", "Nifedipine", "non specified", "NONE", "not known", 
-                                                                     "not Known", "Not known", "Not Known", "not kown", "not provided", "Not stated", "Not Stated", 
-                                                                     "Novonorm", "Ocreotide", "Octreotide", "oha", "OHA", "OHA & INS", "SCII", "SU sent", "unknown", 
-                                                                     "Unknown", "Unsure", NA)
+ initial_treatment_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", "Gliclazide", "glucose", 
+                                                                     "Glucose", "Humulin", "ins during preg", "Ins during preg", "Ins in preg", "insulin", "Insulin", 
+                                                                     "INSULIN", "insulin during preg", "Insulin during pregnancy", "insulin pump", "Keto diet", "MDI", 
+                                                                     "metformin", "Metformin", "Metformin 500mg + diet", "Nifedipine", "non specified", "NONE", 
+                                                                     "not known", "not Known", "Not known", "Not Known", "not kown", "not provided", "Not stated",
+                                                                     "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", "Unsure", NA)
   
   # If there are other initial treatments, stop the function so that it can be fixed
   if (sum(initial_treatment_test) != nrow(dataset_formatted)) {
@@ -90,14 +139,15 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   ## Split patients whether we need the Type 1 dataset or the Type 2 dataset
   dataset_formatted <- dataset_formatted %>%
     mutate(progressed_to_insulin = ifelse(
-      # rules for Type 1: insulin treated within 6 months TRUE, OR, insulin treated within 6 months FALSE but initial treatment is insulin
-      
-      #### Insulin treated within 6 months is FALSE & Time until insulin Rx <=6 (months)
-      
-      InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS" | !is.na(`Initial Trtmnt`))),
-      "Type 1",
-      # rules for Type 2: not specified
-      "Type 2"
+      # rule for Type 2: initial treatment missing + not type 1
+      is.na(`Initial Trtmnt`),
+      "Type 2",
+      ifelse(
+        # rules for Type 1: insulin treated within 6 months TRUE, OR, insulin treated within 6 months FALSE but initial treatment is insulin
+        InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
+        "Type 1",
+        "Type 2"
+      )
     ))
   
   if (diagnosis == TRUE) {
@@ -168,6 +218,21 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   }
   ####
   
+  # # Eth10
+  # f1 <- function(x) ethnicities[which(ethnicities[,1] == x),2]
+  # 
+  # dataset_formatted <- dataset_formatted %>%
+  #   mutate(EthnicOrigin = ifelse(is.na(EthnicOrigin), "NA"))
+  #   mutate(Eth10 = ifelse(
+  #     is.na()
+  #   )lapply(dataset_formatted$EthnicOrigin, f1) %>% unlist())
+  # 
+  # 
+  # f1 <- function(x) ethnicities[which(ethnicities[,1] == x),2]
+  # 
+  # lapply(dataset_formatted$EthnicOrigin, f1) %>% unlist()
+  
+  
   ## Define ethnicity types from subtypes
   # MODYno for White ethnicity
   modyno_white <- dataset_formatted %>%
@@ -231,69 +296,18 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   
   
   
-  #:----- Status specification
-  
-  #####
-  # Just a check for whether there is a new type of reported status that we haven't seen yet
-  # This is being added because we will be rerunning this on newer versions of the dataset which may have new status
-  status_test <- dataset_formatted$Status %in% c("Autoimmune disease", "Autoimmune Disease", "Diabetes & Deafness", "Diabetes & liver adenomas", "Diabetes & Renal Cysts", 
-                                                 "Diabetes & Renal Developmental abnormality", "Diabetes & Renal Developmental Abnormality", "Diabetes & Renal Disease",
-                                                 "Diabetes and Lipodystrophy", "Diabetic", "Exercise induced hypoglycaemia", "FBG > 6.0", "FBG > 6.0\"", "GDM", 
-                                                 "Genital Tract Malformations", "Genital Tract Malformations & Diabetes", "HbA1c > 39", "HbA1c > 39 mmol/mol", 
-                                                 "HbA1C > 39 mmol/mol", "HbA1c > 39mmol/mmol", "Hba1c > 39mmol/mol", "HbA1c > 39mmol/mol", "HbA1c > 39mol/mol", 
-                                                 "HbA1c > 42 mmol/mol", "HbA1c >37", "HbA1c >38mmol/mol", "HbA1c >39", "HbA1c >39mmol/l", "HbA1c >39mmol/mol", 
-                                                 "HbA1c >40mmol/mol", "Hba1c 38mmol/mol", "HbA1c 38mmol/mol", "Hyperinsulinism", "hyperinsulinism progressed to diabetes", 
-                                                 "Hyperinsulinism progressed to diabetes", "Hypoglycaemia", "Hypoglycaemia progressed to diabetes", 
-                                                 "Hypoglycaemia progressed to IGT", "Hypoglycaemia progressed to Remitting diabetes", "Impaired fasting glycaemia", 
-                                                 "Impaired Glucose Tolerance", "Insulin Resistance", "Insulinoma", "IPEX", "Kabuki", "Kabuki syndrome", 
-                                                 "Ketosis prone diabetes", "Ketosis Prone diabetes", "Lipodystrophy", "MDP Syndrome", "nephrocalcinosis & diabetes", 
-                                                 "Not Diabetic", "PNDM", "Raised HbA1c", "Raised HbA1c >5.7", "Relapsing/Remitting Diabetes", "Remitting Diabetes", 
-                                                 "Renal Cysts & Diabetes", "Renal Cysts no Diabetes", "Renal Developmental abnormality", "Renal Developmental Abnormality", 
-                                                 "Renal X", "TNDM", "TRMA", "Unaffected", "Unknown", "Wolfram Syndrome", NA)
-  
-  # If there are other status, stop the function so that it can be fixed
-  if (sum(status_test) != nrow(dataset_formatted)) {
-    print("There is new status which were not considered:")
-    print(unique(dataset_formatted$Status[!status_test]))
-    stop()
-  }
-  ####
-  
-  # Set 'Keep' or 'Remove' to those with the status we want/don't, respectively
-  dataset_formatted <- dataset_formatted %>%
-    mutate(Status_interim = ifelse(!(Status %in% c("Diabetic", "GDM", "FBG > 6.0", "Impaired Glucose Tolerance", "FBG > 6.0\"", "Impaired fasting glycaemia",
-                                                   "Renal Cysts & Diabetes", "Diabetes & Renal Cysts", "Hyperinsulinism progressed to diabetes", "hyperinsulinism progressed to diabetes")), "Remove", "Keep"))
-  
-  
-  if (diagnosis == TRUE) {
-    print("### Exclude specific status ###")
-    print(dataset_formatted %>% filter(Status_interim == "Remove") %>% select(Status) %>% unique() %>% unlist() %>% as.vector())
-    print("###############################")
-    print(table(dataset_formatted$Status, dataset_formatted$Status_interim, useNA = "ifany"))
-    print("###############################")
-    print(table(dataset_formatted$Status_interim))
-  }
-  
-  # Remove the rows not needed
-  dataset_formatted <- dataset_formatted %>%
-    filter(Status_interim == "Keep") %>%
-    select(-Status_interim)
-  
   
   #:----- Gene specification
   
   #####
   # Just a check for whether there is a new type of reported gene that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new gene
-  gene_test <- dataset_formatted$Gene %in% c("?UQCRH", "3243", "6q24", "9pdel", "ABCC8", "ABCC8 & HNF4A", "ADA", "AIRE", 
-                                             "BWS", "CEL", "CISD2", "CTLA4", "DNAJC3", "DNAJC3/DNAJC3", "EIF2AK3", "FOXP3",
-                                             "GATA4", "GATA6", "GCK", "GLUD1", "HK1", "HNF1a", "HNF1A", "HNF1A & GCK", 
-                                             "HNF1A & HNF4A", "HNF1b", "HNF1B", "HNF4a", "HNF4A", "HNF4A & INSR", "IL2RA", 
-                                             "INS", "INSR", "KCNJ11", "KMT2D", "LMNA", "LRBA", "MAFA", "MANF", "MEN1", 
-                                             "Monogenic unlikely", "NeuroD1", "NEUROD1", "NEUROG3", "NGN3", "PAX6", "PDX1", 
-                                             "PIK3R1", "PMM2", "POLD1", "PPARG", "PTF1A", "RFX6", "SLC19A2", "SLC29A3", 
-                                             "STAT1", "STAT3", "TRMT10A", "Turner's syndrome", "WFS1", "ZBTB20", "ZFP57", 
-                                             "ZNF808", NA)
+  gene_test <- dataset_formatted$Gene %in% c("?UQCRH", "3243", "6q24", "9pdel", "ABCC8", "ABCC8 & HNF4A", "AIRE", "CEL", "CISD2", 
+                                             "CTLA4", "DNAJC3", "EIF2AK3", "FOXP3", "GATA4", "GATA6", "GCK", "HNF1a", "HNF1A", 
+                                             "HNF1A & GCK", "HNF1A & HNF4A", "HNF1b", "HNF1B", "HNF4a", "HNF4A", "HNF4A & INSR", 
+                                             "IL2RA", "INS", "INSR", "KCNJ11", "LMNA", "MAFA", "MANF", "NeuroD1", "NEUROD1", 
+                                             "NEUROG3", "NGN3", "PAX6", "PDX1", "PIK3R1", "PPARG", "PTF1A", "RFX6", "SLC19A2", 
+                                             "SLC29A3", "STAT1", "TRMT10A", "WFS1", "ZBTB20", "ZFP57", "ZNF808", NA)
   
   # If there are other gene, stop the function so that it can be fixed
   if (sum(gene_test) != nrow(dataset_formatted)) {
@@ -305,7 +319,7 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
   
   # Set 'Keep' or 'Remove' to those with the gene we want/don't, respectively
   dataset_formatted <- dataset_formatted %>%
-    mutate(gene_interim = ifelse(!(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", NA)), "Remove", "Keep"))
+    mutate(gene_interim = ifelse(!(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A", NA)), "Remove", "Keep"))
   
   
   if (diagnosis == TRUE) {
@@ -367,8 +381,8 @@ formatting <- function(dataset, diagnosis = FALSE, type = NULL, ethnicity = NULL
       MotherDM == "Yes" | FatherDM == "Yes",
       1,
       ifelse(
-        # If parents do not have history: combinations: N/N, N/DK, N/NA, DK/N, NA/N
-        (MotherDM == "No" & FatherDM == "No") | (MotherDM == "No" & FatherDM == "Don't Know") | (MotherDM == "No" & is.na(FatherDM)) | (MotherDM == "Don't Know" & FatherDM == "No") | (is.na(MotherDM) & FatherDM == "No"),
+        # If parents do not have history: combinations: N/N
+        (MotherDM == "No" & FatherDM == "No"),
         0,
         NA
       )
