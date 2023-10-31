@@ -3,31 +3,45 @@
 #' This file contains the function needed for formatting the referral data.
 #'
 #' @param dataset original unformatted referral dataset
-#' @param dataset.case_control case-control dataset which patients that need to be removed.
+#' @param dataset.case_control case-control dataset which patients that need to be removed
+#' @param ethnicity_groups table containing the sorted ethnicities into all groups
+#' @param ethnicity_labels table containing the conversion labels for each of the ethnicity groups
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
-#' @param proband 'Proband' or 'All' variable to help select the patients needed.
+#' @param proband 'Proband' or 'All' variable to help select the patients needed
+#' @param investigate 'True' or 'False' variable which when TRUE, ignores the variables type, 
+#'            ethnicity and proband and outputs a table with rows for individual patients and 
+#'            columns for each of the variables that should be investigated in the records.
 #'
 #' @return dataset ready for analysis
 #'
-#' @import coda
 #'
+#' @examples
+#' \dontrun{
+#' 
+#' ## load the excel tables like so (so that it understands NA properly:
+#' library(readxl)
+#' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
+#' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
+#' }
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL) {
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL, investigate = FALSE) {
   
   ### Function checks
   ## Ensure type of diabetes is chosen
   if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
   if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
-  
   ## Ensure ethnicity is chosen 
   if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   ## Ensure proband is chosen correctly
   if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
-  if (!(proband %in% c("Proband", "All"))) {("'ethnicity' must be defined: 'Proband' or 'All'.")}
+  if (!(proband %in% c("Proband", "All"))) {("'proband' must be defined: 'Proband' or 'All'.")}
+  ## Ensure investigate is chosen correctly
+  if (is.null(investigate)) {stop("'investigate' must be defined: 'TRUE' or 'FALSE'.")}
+  if (!(investigate %in% c("TRUE", "FALSE"))) {("'investigate' must be defined: 'TRUE' or 'FALSE'.")}
   
   ### Libraries needed
   require(tidyverse)
@@ -40,6 +54,13 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
   
   ### set up dataset for change
   dataset_formatted <- dataset
+  
+  ### set up dataset for investigate
+  if (investigate == TRUE) {
+    dataset_investigate <- dataset_formatted %>%
+      select(MODYNo)
+  }
+  
   
   ###
   # Make sure there are no repeated rows
@@ -155,16 +176,20 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
     print(table(dataset_formatted$`Initial Trtmnt`, dataset_formatted$progressed_to_insulin, useNA = "ifany"))
   }
   
-  ## Select the specific Type and discard the variable created to define them
-  if (type == "Type 1") {
-    dataset_formatted <- dataset_formatted %>%
-      filter(progressed_to_insulin == "Type 1") %>%
-      select(-progressed_to_insulin)
-  } else if( type == "Type 2") {
-    dataset_formatted <- dataset_formatted %>%
-      filter(progressed_to_insulin == "Type 2") %>%
-      select(-progressed_to_insulin)
+  ## If 'investigate' is FALSE, then select one of the types
+  if (investigate == "FALSE") {
+    ## Select the specific Type and discard the variable created to define them
+    if (type == "Type 1") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(progressed_to_insulin == "Type 1") %>%
+        select(-progressed_to_insulin)
+    } else if( type == "Type 2") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(progressed_to_insulin == "Type 2") %>%
+        select(-progressed_to_insulin)
+    }
   }
+  
   
   
   #:----- Ethnicity specification
@@ -218,80 +243,38 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
   }
   ####
   
-  # # Eth10
-  # f1 <- function(x) ethnicities[which(ethnicities[,1] == x),2]
-  # 
-  # dataset_formatted <- dataset_formatted %>%
-  #   mutate(EthnicOrigin = ifelse(is.na(EthnicOrigin), "NA"))
-  #   mutate(Eth10 = ifelse(
-  #     is.na()
-  #   )lapply(dataset_formatted$EthnicOrigin, f1) %>% unlist())
-  # 
-  # 
-  # f1 <- function(x) ethnicities[which(ethnicities[,1] == x),2]
-  # 
-  # lapply(dataset_formatted$EthnicOrigin, f1) %>% unlist()
-  
-  
-  ## Define ethnicity types from subtypes
-  # MODYno for White ethnicity
-  modyno_white <- dataset_formatted %>%
-    filter(str_detect(EthnicOrigin, "White") | str_detect(EthnicOrigin, "European") | EthnicOrigin == "Caucasian" | EthnicOrigin == "British" | EthnicOrigin == "Czech" | EthnicOrigin == "Dutch" | EthnicOrigin == "English" | EthnicOrigin == "Finnish" | EthnicOrigin == "French Canadian" | EthnicOrigin == "German" | EthnicOrigin == "Greek" | EthnicOrigin == "Hungarian" | EthnicOrigin == "Icelandic" | EthnicOrigin == "Irish" | EthnicOrigin == "Italian" | EthnicOrigin == "Maltese" | EthnicOrigin == "N Irish" | EthnicOrigin == "Polish" | EthnicOrigin == "Portuguese" | EthnicOrigin == "Romanian" | EthnicOrigin == "Spanish" | EthnicOrigin == "Swedish" | EthnicOrigin == "UK" | EthnicOrigin == "Ukranian" | EthnicOrigin == "Ukrainian" | EthnicOrigin == "whtie" | EthnicOrigin == "Whtie" | EthnicOrigin == "white") %>%
-    filter(str_detect(EthnicOrigin, "Black", negate = TRUE), str_detect(EthnicOrigin, "black", negate = TRUE), str_detect(EthnicOrigin, "Asian", negate = TRUE), str_detect(EthnicOrigin, "Mixed", negate = TRUE), str_detect(EthnicOrigin, "mixed", negate = TRUE)) %>%
-    select(MODYNo) %>%
-    unlist()
-  
-  # MODYno for Black ethnicity
-  modyno_black <- dataset_formatted %>%
-    filter(str_detect(EthnicOrigin, "Black") | str_detect(EthnicOrigin, "black")) %>%
-    filter(str_detect(EthnicOrigin, "White", negate = TRUE), str_detect(EthnicOrigin, "European", negate = TRUE), str_detect(EthnicOrigin, "Asian", negate = TRUE), str_detect(EthnicOrigin, "Mixed", negate = TRUE), str_detect(EthnicOrigin, "mixed", negate = TRUE)) %>%
-    select(MODYNo) %>%
-    unlist()
-  
-  # MODYno for Asian ethnicity
-  modyno_asian <- dataset_formatted %>%
-    filter(str_detect(EthnicOrigin, "Asian")) %>%
-    filter(str_detect(EthnicOrigin, "White", negate = TRUE), str_detect(EthnicOrigin, "European", negate = TRUE), str_detect(EthnicOrigin, "Black", negate = TRUE), str_detect(EthnicOrigin, "black", negate = TRUE), str_detect(EthnicOrigin, "Mixed", negate = TRUE), str_detect(EthnicOrigin, "mixed", negate = TRUE)) %>%
-    select(MODYNo) %>%
-    unlist()
-  
-  # MODYno for Mixed ethnicity
-  modyno_mixed <- dataset_formatted %>%
-    filter(str_detect(EthnicOrigin, "Mixed") | str_detect(EthnicOrigin, "mixed") | str_detect(EthnicOrigin, "&")) %>%
-    select(MODYNo) %>%
-    unlist()
-  
-  ###
-  # Just a check to make sure no rows are being considered more than once
-  if (sum(duplicated(c(modyno_white, modyno_black, modyno_asian, modyno_mixed))) != 0) {
-    stop("One or more rows are being identified as several Ethnicity types.")
-  } 
-  ###
-  
-  ## Define ethnicity types from subtypes: white, african black, south asian, east asian, hispanic (south/center america), arabic, indigenous (america), indigenous (australasia), mixed
-  dataset_formatted$ethnicity_clean <- "Not used"
-  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_white] <- "White"
-  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_black] <- "Black"
-  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_asian] <- "South Asian"
-  dataset_formatted$ethnicity_clean[dataset_formatted$MODYNo %in% modyno_mixed] <- "Mixed"
-  
   dataset_formatted <- dataset_formatted %>%
-    mutate(ethnicity_clean = factor(ethnicity_clean, levels = c("White", "Black", "South Asian", "East Asian", "Hispanic", "Arabic", "Mixed", "Indigenous (America)", "Indigenous (Australasia)")))
+    mutate(EthnicOrigin = ifelse(is.na(EthnicOrigin), "NA", EthnicOrigin),
+           Eth10 = "undefined",
+           Eth5 = "undefined")
+  
+  for (i in 1:nrow(dataset_formatted)) {
+    
+    # ethnicity entry
+    value_eth <- dataset_formatted$EthnicOrigin[i]
+    
+    # check what eth10 it is
+    dataset_formatted$Eth10[i] <- as.character(ethnicity_labels[which(ethnicity_labels[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),2])
+    
+    # check what eth5 it is
+    dataset_formatted$Eth5[i] <- as.character(ethnicity_labels[which(ethnicity_labels[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),4])
+    
+  }
   
   
   if (diagnosis == TRUE) {
     print("###### White or Non-White #######")
-    print(table(dataset_formatted$EthnicOrigin ,dataset_formatted$ethnicity_clean, useNA = "ifany"))
+    print(table(dataset_formatted$Eth10 ,dataset_formatted$Eth5, useNA = "ifany"))
   }
   
   
   ## Select the specific Ethnicity and discard the variable created to define them
   if (ethnicity == "White") {
     dataset_formatted <- dataset_formatted %>%
-      filter(ethnicity_clean == "White")
+      filter(Eth5 == "White")
   } else if(ethnicity == "Non-White") {
     dataset_formatted <- dataset_formatted %>%
-      filter(ethnicity_clean == "Black" | ethnicity_clean == "South Asian" | ethnicity_clean == "Mixed")
+      filter(Eth5 != "White")
   }
   
   
@@ -371,8 +354,8 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
   
   #:----- Ethnicity
   dataset_formatted <- dataset_formatted %>%
-    mutate(Ethnicity = ethnicity_clean) %>%
-    select(-ethnicity_clean)
+    mutate(Eth10 = factor(Eth10),
+           Eth5 = factor(Eth5))
   
   #:----- Parent history
   dataset_formatted <- dataset_formatted %>%
@@ -390,7 +373,76 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
   
   #:----- HbA1c (%)
   
+  ## Hba1c2 values of 0 need to be changed to NA
+  dataset_formatted <- dataset_formatted %>%
+    mutate(Hba1c2 = ifelse(Hba1c2 == 0, NA, Hba1c2)) %>%
+    mutate(IFCCHBA1C = as.numeric(IFCCHBA1C))
+  
+  print("This warning is okay.")
+  
   ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
+  if (investigate == TRUE) {
+    ## low values
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, HbA1c, Hba1c2, IFCCHBA1C) %>%
+          mutate(
+            IFCCHBA1C = as.numeric(IFCCHBA1C),
+            HbA1c_check = ifelse(
+              (HbA1c < 4.5) | (HbA1c > 17 & HbA1c < 28),
+              TRUE,
+              NA
+            ),
+            Hba1c2_check = ifelse(
+              (Hba1c2 < 4.5) | (Hba1c2 > 17 & Hba1c2 < 28),
+              TRUE,
+              NA
+            ),
+            IFCCHBA1C_check = ifelse(
+              (IFCCHBA1C < 4.5) | (IFCCHBA1C > 17 & IFCCHBA1C < 28),
+              TRUE,
+              NA
+            )
+          ) %>%
+          select(-HbA1c, -Hba1c2, -IFCCHBA1C),
+        by = c("MODYNo")
+      )
+  }
+  
+  dataset_formatted <- dataset_formatted %>%
+    mutate(hba1c = ifelse(
+      # if the variable HbA1c isn't missing, take this value
+      !is.na(HbA1c),
+      ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
+      ifelse(
+        HbA1c < 20,
+        HbA1c,
+        (HbA1c / 10.929) + 2.15
+      ),
+      # if the variable Hba1c2 isn't missing, take this value
+      ifelse(
+        !is.na(Hba1c2),
+        ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
+        ifelse(
+          Hba1c2 < 20,
+          Hba1c2,
+          (Hba1c2 / 10.929) + 2.15
+        ),
+        ifelse(
+          # if the variable IFCCHBA1C isn't missing, take this value
+          !is.na(IFCCHBA1C),
+          ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
+          ifelse(
+            IFCCHBA1C < 20,
+            IFCCHBA1C,
+            (IFCCHBA1C / 10.929) + 2.15
+          ),
+          # if all variable are missing
+          NA
+        )
+      )
+    ))
   
   #:----- Current age
   dataset_formatted <- dataset_formatted %>%
@@ -418,12 +470,73 @@ formatting <- function(dataset, dataset.case_control, diagnosis = FALSE, type = 
   #:----- BMI
   
   ### Need to make sure BMI values are within sensible ranges
+  if (investigate == TRUE) {
+    ## low values
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, bmi) %>%
+          mutate(
+            BMI_check = ifelse(
+              bmi < 10 | bmi > 50,
+              TRUE,
+              NA
+              )
+          ) %>%
+          select(-bmi),
+        by = c("MODYNo")
+      )
+    print("The warning is okay.")
+  }
   
   dataset_formatted <- dataset_formatted %>%
     mutate(bmi = as.numeric(BMI)) %>%
     select(-BMI)
   
+  
   #:----- Treatment (insulin or tablets vs no insulin or tablets)
+  
+  #####
+  # Just a check for whether there is a new type of reported gene that we haven't seen yet
+  # This is being added because we will be rerunning this on newer versions of the dataset which may have new gene
+  insoroha_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", 
+                                                         "Gliclazide", "glucose", "Glucose", "Humulin", "ins during preg", 
+                                                         "Ins during preg", "Ins in preg", "insulin", "Insulin", "INSULIN", 
+                                                         "insulin during preg", "Insulin during pregnancy", "insulin pump", 
+                                                         "Keto diet", "MDI", "metformin", "Metformin", "Metformin 500mg + diet", 
+                                                         "Nifedipine", "non specified", "NONE", "not known", "not Known", 
+                                                         "Not known", "Not Known", "not kown", "not provided", "Not stated",
+                                                         "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", 
+                                                         "Unsure", NA)
+  
+  # If there are other gene, stop the function so that it can be fixed
+  if (sum(insoroha_test) != nrow(dataset_formatted)) {
+    print("There is new gene which were not considered:")
+    print(unique(dataset_formatted$`Initial Trtmnt`[!insoroha_test]))
+    stop()
+  }
+  ####
+  
+  #:-------------
+  ### Still need to figure out what to do with Insulin during pregnancy
+  #:-------------
+  
+  dataset_formatted <- dataset_formatted %>%
+    mutate(insoroha = ifelse(
+      # 1 (on insulin or oha)
+      `Initial Trtmnt` %in% c("Diazoxide", "DIET & INS", "DIET & OHA", "Gliclazide", "glucose", "Glucose", "Humulin", 
+                              "insulin", "Insulin", "INSULIN", "insulin pump", "MDI", "metformin", "Metformin", 
+                              "Metformin 500mg + diet", "Nifedipine", "Novonorm", "oha", "OHA", "OHA & INS"),
+      1,
+      # 0 (not on insulin or oha)
+      ifelse(
+        `Initial Trtmnt` %in% c("diet", "Diet", "DIET", "Keto diet", "NONE"),
+        0,
+        NA
+      )
+    ))
+  
+  
   
   ### Need to choose which are in treatment and which are not
   
