@@ -9,6 +9,7 @@
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
+#' @param gene_type 'Primary' or 'Secondary' variable specifying the genes being tested (other genes could be sensitivity analysis)
 #' @param proband 'Proband' or 'All' variable to help select the patients needed
 #' @param investigate 'True' or 'False' variable which when TRUE, ignores the variables type, 
 #'            ethnicity and proband and outputs a table with rows for individual patients and 
@@ -27,7 +28,7 @@
 #' }
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, proband = NULL, investigate = FALSE) {
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = FALSE) {
   
   ### Function checks
   ## Ensure type of diabetes is chosen
@@ -36,6 +37,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   ## Ensure ethnicity is chosen 
   if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
   if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
+  ## Ensure gene_type is chosen 
+  if (is.null(gene_type)) {stop("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
+  if (!(gene_type %in% c("Primary", "Secondary"))) {("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
   ## Ensure proband is chosen correctly
   if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
   if (!(proband %in% c("Proband", "All"))) {("'proband' must be defined: 'Proband' or 'All'.")}
@@ -119,7 +123,11 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   # Set 'Keep' or 'Remove' to those with the status we want/don't, respectively
   dataset_formatted <- dataset_formatted %>%
     mutate(Status_interim = ifelse(!(Status %in% c("Diabetic", "GDM", "FBG > 6.0", "Impaired Glucose Tolerance", "FBG > 6.0\"", "Impaired fasting glycaemia",
-                                                   "Renal Cysts & Diabetes", "Diabetes & Renal Cysts", "Hyperinsulinism progressed to diabetes", "hyperinsulinism progressed to diabetes")), "Remove", "Keep"))
+                                                   "Renal Cysts & Diabetes", "Diabetes & Renal Cysts", "Hyperinsulinism progressed to diabetes", "hyperinsulinism progressed to diabetes",
+                                                   "Autoimmune disease", "Autoimmune Disease", "Diabetes & Deafness", "Diabetes & liver adenomas",
+                                                   "Diabetes & Renal Developmental abnormality", "Diabetes & Renal Developmental Abnormality", 
+                                                   "Diabetes & Renal Disease", "Diabetes and Lipodystrophy", "Genital Tract Malformations & Diabetes",
+                                                   "Hypoglycaemia progressed to diabetes")), "Remove", "Keep"))
   
   
   if (diagnosis == TRUE) {
@@ -146,7 +154,8 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                                      "INSULIN", "insulin during preg", "Insulin during pregnancy", "insulin pump", "Keto diet", "MDI", 
                                                                      "metformin", "Metformin", "Metformin 500mg + diet", "Nifedipine", "non specified", "NONE", 
                                                                      "not known", "not Known", "Not known", "Not Known", "not kown", "not provided", "Not stated",
-                                                                     "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", "Unsure", NA)
+                                                                     "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", "Unsure", NA,
+                                                                     "Mixtard BD", "MDF", "SCII")
   
   # If there are other initial treatments, stop the function so that it can be fixed
   if (sum(initial_treatment_test) != nrow(dataset_formatted)) {
@@ -161,11 +170,11 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset_formatted %>%
     mutate(progressed_to_insulin = ifelse(
       # rule for Type 2: initial treatment missing + not type 1
-      is.na(`Initial Trtmnt`),
+      is.na(`Initial Trtmnt`) | `Initial Trtmnt` == "insulin during preg" | `Initial Trtmnt` == "Insulin during pregnancy",
       "Type 2",
       ifelse(
         # rules for Type 1: insulin treated within 6 months TRUE, OR, insulin treated within 6 months FALSE but initial treatment is insulin
-        InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
+        InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "MDI" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "insulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
         "Type 1",
         "Type 2"
       )
@@ -290,7 +299,8 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                              "HNF1A & GCK", "HNF1A & HNF4A", "HNF1b", "HNF1B", "HNF4a", "HNF4A", "HNF4A & INSR", 
                                              "IL2RA", "INS", "INSR", "KCNJ11", "LMNA", "MAFA", "MANF", "NeuroD1", "NEUROD1", 
                                              "NEUROG3", "NGN3", "PAX6", "PDX1", "PIK3R1", "PPARG", "PTF1A", "RFX6", "SLC19A2", 
-                                             "SLC29A3", "STAT1", "TRMT10A", "WFS1", "ZBTB20", "ZFP57", "ZNF808", NA)
+                                             "SLC29A3", "STAT1", "TRMT10A", "WFS1", "ZBTB20", "ZFP57", "ZNF808", NA,
+                                             "STAT3", "LRBA", "BWS", "ADA")
   
   # If there are other gene, stop the function so that it can be fixed
   if (sum(gene_test) != nrow(dataset_formatted)) {
@@ -302,24 +312,32 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   # Set 'Keep' or 'Remove' to those with the gene we want/don't, respectively
   dataset_formatted <- dataset_formatted %>%
-    mutate(gene_interim = ifelse(!(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A", NA)), "Remove", "Keep"))
+    mutate(gene_type = ifelse(!(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A", NA)), "Secondary", "Primary"))
   
   
   if (diagnosis == TRUE) {
     print("### Only include specific genes ###")
     print(c("", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "GCK"))
     print("###############################")
-    print(table(dataset_formatted$Gene, dataset_formatted$gene_interim, useNA = "ifany"))
+    print(table(dataset_formatted$Gene, dataset_formatted$gene_type, useNA = "ifany"))
     print("###############################")
-    print(table(dataset_formatted$gene_interim))
+    print(table(dataset_formatted$gene_type))
   }
   
-  dataset_formatted <- dataset_formatted %>%
-    filter(gene_interim == "Keep") %>%
-    select(-gene_interim)
   
+  if (investigate == TRUE){
+    if (gene_type == "Primary") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(gene_type == "Primary") %>%
+        select(-gene_type)
+    } else {
+      dataset_formatted <- dataset_formatted %>%
+        filter(gene_type == "Secondary") %>%
+        select(-gene_type)
+    }
+  }
   
-  
+
   #:----- Proband
   
   ### Needs to be done, but require the specific variable
@@ -368,8 +386,24 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         (MotherDM == "No" & FatherDM == "No"),
         0,
         NA
-      )
-    ))
+        )
+      ),
+      # this variable is checking whether the parent history is both parents or not 
+      #  (the mody calculator was made for one of the parents having diabetes, not both)
+      pardm_breakdown = ifelse(
+        MotherDM == "Yes" & FatherDM == "Yes",
+        2,
+        ifelse(
+          (MotherDM == "Yes" & FatherDM == "No") | (MotherDM == "No" & FatherDM == "Yes"),
+          1,
+          ifelse(
+            # If parents do not have history: combinations: N/N
+            (MotherDM == "No" & FatherDM == "No"),
+            0,
+            NA
+          )
+        )
+      ))
   
   #:----- HbA1c (%)
   
@@ -475,22 +509,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     dataset_investigate <- dataset_investigate %>%
       left_join(
         dataset_formatted %>%
-          select(MODYNo, bmi) %>%
+          select(MODYNo, BMI, agerec) %>%
           mutate(
             BMI_check = ifelse(
-              bmi < 10 | bmi > 50,
+              (agerec > 17 & BMI < 15) | BMI > 50,
               TRUE,
               NA
               )
           ) %>%
-          select(-bmi),
+          select(-BMI, -agerec),
         by = c("MODYNo")
       )
-    print("The warning is okay.")
   }
   
   dataset_formatted <- dataset_formatted %>%
-    mutate(bmi = as.numeric(BMI)) %>%
+    mutate(bmi = as.numeric(BMI),
+           bmi = ifelse(
+             bmi < 2 | bmi > 100,
+             NA,
+             bmi
+           )) %>%
     select(-BMI)
   
   
