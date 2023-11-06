@@ -127,7 +127,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                    "Autoimmune disease", "Autoimmune Disease", "Diabetes & Deafness", "Diabetes & liver adenomas",
                                                    "Diabetes & Renal Developmental abnormality", "Diabetes & Renal Developmental Abnormality", 
                                                    "Diabetes & Renal Disease", "Diabetes and Lipodystrophy", "Genital Tract Malformations & Diabetes",
-                                                   "Hypoglycaemia progressed to diabetes")), "Remove", "Keep"))
+                                                   "Hypoglycaemia progressed to diabetes", "nephrocalcinosis & diabetes")), "Remove", "Keep"))
   
   
   if (diagnosis == TRUE) {
@@ -278,12 +278,14 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   
   ## Select the specific Ethnicity and discard the variable created to define them
-  if (ethnicity == "White") {
-    dataset_formatted <- dataset_formatted %>%
-      filter(Eth5 == "White")
-  } else if(ethnicity == "Non-White") {
-    dataset_formatted <- dataset_formatted %>%
-      filter(Eth5 != "White")
+  if (investigate == FALSE) {
+    if (ethnicity == "White") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(Eth5 == "White")
+    } else if(ethnicity == "Non-White") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(Eth5 != "White")
+    }
   }
   
   
@@ -312,7 +314,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   # Set 'Keep' or 'Remove' to those with the gene we want/don't, respectively
   dataset_formatted <- dataset_formatted %>%
-    mutate(gene_type = ifelse(!(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A", NA)), "Secondary", "Primary"))
+    mutate(gene_type = ifelse(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A"), "Primary", ifelse(is.na(Gene), NA, "Secondary")))
   
   
   if (diagnosis == TRUE) {
@@ -321,14 +323,14 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     print("###############################")
     print(table(dataset_formatted$Gene, dataset_formatted$gene_type, useNA = "ifany"))
     print("###############################")
-    print(table(dataset_formatted$gene_type))
+    print(table(dataset_formatted$gene_type, useNA = "ifany"))
   }
   
   
-  if (investigate == TRUE){
+  if (investigate == FALSE){
     if (gene_type == "Primary") {
       dataset_formatted <- dataset_formatted %>%
-        filter(gene_type == "Primary") %>%
+        filter(gene_type %in% c("Primary", NA)) %>%
         select(-gene_type)
     } else {
       dataset_formatted <- dataset_formatted %>%
@@ -352,10 +354,13 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
   ## Select the specific Proband choice made
-  if (proband == "Proband") {
-    dataset_formatted <- dataset_formatted %>%
-      filter(proband == "Proband")
+  if (investigate == FALSE) {
+    if (proband == "Proband") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(proband == "Proband")
+    }
   }
+  
   
   
   ###
@@ -405,79 +410,6 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         )
       ))
   
-  #:----- HbA1c (%)
-  
-  ## Hba1c2 values of 0 need to be changed to NA
-  dataset_formatted <- dataset_formatted %>%
-    mutate(Hba1c2 = ifelse(Hba1c2 == 0, NA, Hba1c2)) %>%
-    mutate(IFCCHBA1C = as.numeric(IFCCHBA1C))
-  
-  print("This warning is okay.")
-  
-  ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
-  if (investigate == TRUE) {
-    ## low values
-    dataset_investigate <- dataset_investigate %>%
-      left_join(
-        dataset_formatted %>%
-          select(MODYNo, HbA1c, Hba1c2, IFCCHBA1C) %>%
-          mutate(
-            IFCCHBA1C = as.numeric(IFCCHBA1C),
-            HbA1c_check = ifelse(
-              (HbA1c < 4.5) | (HbA1c > 17 & HbA1c < 28),
-              TRUE,
-              NA
-            ),
-            Hba1c2_check = ifelse(
-              (Hba1c2 < 4.5) | (Hba1c2 > 17 & Hba1c2 < 28),
-              TRUE,
-              NA
-            ),
-            IFCCHBA1C_check = ifelse(
-              (IFCCHBA1C < 4.5) | (IFCCHBA1C > 17 & IFCCHBA1C < 28),
-              TRUE,
-              NA
-            )
-          ) %>%
-          select(-HbA1c, -Hba1c2, -IFCCHBA1C),
-        by = c("MODYNo")
-      )
-  }
-  
-  dataset_formatted <- dataset_formatted %>%
-    mutate(hba1c = ifelse(
-      # if the variable HbA1c isn't missing, take this value
-      !is.na(HbA1c),
-      ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
-      ifelse(
-        HbA1c < 20,
-        HbA1c,
-        (HbA1c / 10.929) + 2.15
-      ),
-      # if the variable Hba1c2 isn't missing, take this value
-      ifelse(
-        !is.na(Hba1c2),
-        ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
-        ifelse(
-          Hba1c2 < 20,
-          Hba1c2,
-          (Hba1c2 / 10.929) + 2.15
-        ),
-        ifelse(
-          # if the variable IFCCHBA1C isn't missing, take this value
-          !is.na(IFCCHBA1C),
-          ## values below 20 are considered percentage and values above/equal to 20 are mmol/mol
-          ifelse(
-            IFCCHBA1C < 20,
-            IFCCHBA1C,
-            (IFCCHBA1C / 10.929) + 2.15
-          ),
-          # if all variable are missing
-          NA
-        )
-      )
-    ))
-  
   #:----- Current age
   dataset_formatted <- dataset_formatted %>%
     mutate(agerec = as.numeric(`Age Collected`))
@@ -485,21 +417,6 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- Age at diagnosis
   dataset_formatted <- dataset_formatted %>%
     mutate(agedx = as.numeric(`Age Diag`))
-  
-  #:----- Sex (male 1, female 2)
-  dataset_formatted <- dataset_formatted %>%
-    mutate(sex = ifelse(
-      # If male
-      Sex == "Male",
-      1,
-      # If female
-      ifelse(
-        Sex == "Female",
-        2,
-        # If unknown
-        NA
-      )
-    ))
   
   #:----- BMI
   
@@ -515,7 +432,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
               (agerec > 17 & BMI < 15) | BMI > 50,
               TRUE,
               NA
-              )
+            )
           ) %>%
           select(-BMI, -agerec),
         by = c("MODYNo")
@@ -532,28 +449,166 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     select(-BMI)
   
   
+  
+  
+  #:----- HbA1c (%)
+  
+  
+  dataset_formatted <- dataset_formatted %>%
+    # numeric everything
+    mutate(HbA1c = as.numeric(HbA1c),
+           Hba1c2 = as.numeric(Hba1c2),
+           IFCCHBA1C = as.numeric(IFCCHBA1C)) %>%
+    # erroneous values 
+    mutate(Hba1c2 = ifelse(Hba1c2 == 0, NA, Hba1c2)) %>%
+    # turn everything to %
+    mutate(
+      HbA1c = ifelse(
+        HbA1c > 20,
+        (HbA1c/10.929) + 2.15,
+        HbA1c
+        ),
+      Hba1c2 = ifelse(
+        Hba1c2 > 20,
+        (Hba1c2/10.929) + 2.15,
+        Hba1c2
+        ),
+      IFCCHBA1C = ifelse(
+        IFCCHBA1C > 20,
+        (IFCCHBA1C/10.929) + 2.15,
+        IFCCHBA1C
+        )
+      )
+  
+  print("This warning is okay.")
+  
+
+  
+  
+  ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
+  if (investigate == TRUE) {
+    ## low values
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, HbA1c, Hba1c2, IFCCHBA1C) %>%
+          mutate(
+            HbA1c_check = ifelse(
+              HbA1c < 4.5 | HbA1c > 20,
+              TRUE,
+              NA
+            ),
+            Hba1c2_check = ifelse(
+              Hba1c2 < 4.5 | Hba1c2 > 20,
+              TRUE,
+              NA
+            ),
+            IFCCHBA1C_check = ifelse(
+              IFCCHBA1C < 4.5 | IFCCHBA1C > 20,
+              TRUE,
+              NA
+            )
+          ) %>%
+          select(-HbA1c, -Hba1c2, -IFCCHBA1C),
+        by = c("MODYNo")
+      )
+  }
+  
+  dataset_formatted <- dataset_formatted %>%
+    ## apply our criteria for plausible values first
+    mutate(
+      HbA1c_plausible = ifelse(
+        HbA1c < 3 | HbA1c > 20,
+        NA,
+        HbA1c
+      ),
+      Hba1c2_plausible = ifelse(
+        Hba1c2 < 3 | Hba1c2 > 20,
+        NA,
+        Hba1c2
+      ),
+      IFCCHBA1C_plausible = ifelse(
+        IFCCHBA1C < 3 | IFCCHBA1C > 20,
+        NA,
+        IFCCHBA1C
+      )
+    ) %>%
+    ## decide on which value we are going to use for the final variable
+    mutate(
+      hba1c = ifelse(
+        # if the variable IFCCHBA1C isn't missing, take this value
+        !is.na(IFCCHBA1C_plausible),
+        IFCCHBA1C_plausible,
+        # if the variable HbA1c isn't missing, take this value
+        ifelse(
+          !is.na(HbA1c_plausible),
+          HbA1c_plausible,
+          # if the variable Hba1c2 isn't missing, take this value
+          ifelse(
+            !is.na(Hba1c2_plausible),
+            Hba1c2_plausible,
+            # if all variable are missing
+            NA
+          )
+        )
+      )
+    )
+    
+  #:----- Sex (male 1, female 2)
+  dataset_formatted <- dataset_formatted %>%
+    mutate(sex = ifelse(
+      # If male
+      Sex == "Male",
+      1,
+      # If female
+      ifelse(
+        Sex == "Female",
+        2,
+        # If unknown
+        NA
+      )
+    ))
+  
   #:----- Treatment (insulin or tablets vs no insulin or tablets)
   
   #####
   # Just a check for whether there is a new type of reported gene that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new gene
-  insoroha_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", 
-                                                         "Gliclazide", "glucose", "Glucose", "Humulin", "ins during preg", 
-                                                         "Ins during preg", "Ins in preg", "insulin", "Insulin", "INSULIN", 
-                                                         "insulin during preg", "Insulin during pregnancy", "insulin pump", 
-                                                         "Keto diet", "MDI", "metformin", "Metformin", "Metformin 500mg + diet", 
-                                                         "Nifedipine", "non specified", "NONE", "not known", "not Known", 
-                                                         "Not known", "Not Known", "not kown", "not provided", "Not stated",
-                                                         "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", 
-                                                         "Unsure", NA)
+  insoroha_test <- dataset_formatted$`Current Trtmnt` %in% c("br", "CSII", "Diet", "DIET", "Eithroxin", "Hexathyroxinelevothyroxine", "INS", 
+                                                             "insulin", "Insulin", "INSULIN", "Insulin during pregnancy", 
+                                                             "INSULIN during pregnancy", "insulin pump", "Insulin pump", "Insulin Pump", 
+                                                             "Lantus", "Lantus & Humalog", "Levemir", "Loop, DIET", "metformin", "Metformin", 
+                                                             "METFORMIN", "Nifedipine + Sulphonylurea", "non insulin treated", "non specified",
+                                                             "NONE", "not insulin treated", "not known", "not Known", "Not Known", 
+                                                             "not provided", "not stated", "Not stated", "Not Stated", "Novonorm", 
+                                                             "Novorapid", "Octreotide", "oha", "OHA", "OHA & injectable GLP1", 
+                                                             "OHA & INS", "OHA and diet", "Oral", "SCII, DIET", "Semaglutide", "unknown", 
+                                                             "Unknown", "Unsure of text on form", NA)
   
   # If there are other gene, stop the function so that it can be fixed
   if (sum(insoroha_test) != nrow(dataset_formatted)) {
     print("There is new gene which were not considered:")
-    print(unique(dataset_formatted$`Initial Trtmnt`[!insoroha_test]))
+    print(unique(dataset_formatted$`Current Trtmnt`[!insoroha_test]))
     stop()
   }
   ####
+  
+  if (investigate == TRUE) {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, `Current Trtmnt`) %>%
+          mutate(
+            `Current Trtmnt_check` = ifelse(
+              `Current Trtmnt` %in% c("Unsure of text on form", "br"),
+              TRUE,
+              NA
+            )
+          ) %>%
+          select(-`Current Trtmnt`),
+        by = c("MODYNo")
+      )
+  }
   
   #:-------------
   ### Still need to figure out what to do with Insulin during pregnancy
@@ -562,28 +617,88 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset_formatted %>%
     mutate(insoroha = ifelse(
       # 1 (on insulin or oha)
-      `Initial Trtmnt` %in% c("Diazoxide", "DIET & INS", "DIET & OHA", "Gliclazide", "glucose", "Glucose", "Humulin", 
-                              "insulin", "Insulin", "INSULIN", "insulin pump", "MDI", "metformin", "Metformin", 
-                              "Metformin 500mg + diet", "Nifedipine", "Novonorm", "oha", "OHA", "OHA & INS"),
+      `Current Trtmnt` %in% c("CSII", "INS", "insulin", "Insulin", "INSULIN", "insulin pump", "Insulin pump", 
+                              "Insulin Pump", "Lantus", "Lantus & Humalog", "Levemir", "Loop, DIET", 
+                              "metformin", "Metformin", "METFORMIN", "Nifedipine + Sulphonylurea",
+                              "Novonorm", "Novorapid", "Octreotide", "oha", "OHA", "OHA & injectable GLP1",
+                              "OHA & INS", "OHA and diet", "Oral", "SCII, DIET", "Semaglutide"),
       1,
       # 0 (not on insulin or oha)
       ifelse(
-        `Initial Trtmnt` %in% c("diet", "Diet", "DIET", "Keto diet", "NONE"),
+        `Current Trtmnt` %in% c("Diet", "DIET", "Eithroxin", "Hexathyroxinelevothyroxine", 
+                                "non insulin treated", "NONE", "not insulin treated"),
         0,
         NA
       )
     ))
   
   
-  
-  ### Need to choose which are in treatment and which are not
-  
+
   #:----- C-peptide
   
   ## Only do this for Type 1
   if (type == "Type 1") {
     
     # cpeptide > 200 or UCPCR > 0.2
+    
+    dataset_formatted <- dataset_formatted %>%
+      # convert units (from ng/ml to pmol/L)
+      mutate(`C-Peptide` = ifelse(
+        `C-peptide units` %in% c("ng/ml", "ug/ul"),
+        `C-Peptide`/0.003,
+        `C-Peptide`
+      )) 
+    
+    if (investigate == TRUE) {
+      dataset_investigate <- dataset_investigate %>%
+        left_join(
+          dataset_formatted %>%
+            select(MODYNo, `UCPCR Value`, `C-peptide units`, `C-Peptide`) %>%
+            mutate(
+              `UCPCR Value_check` = ifelse(
+                `UCPCR Value` < 0.01 | `UCPCR Value` > 12,
+                TRUE,
+                NA
+                ),
+              `C-peptide units_check` = ifelse(
+                `C-peptide units` %in% c("nmol/L", "pml", "nmol/L", "ug/ul"),
+                TRUE,
+                NA
+              ),
+              `C-Peptide_check` = ifelse(
+                `C-Peptide` < 20 | `C-Peptide` > 5000,
+                TRUE,
+                NA
+              )
+              ) %>%
+            select(-`UCPCR Value`, -`C-peptide units`, -`C-Peptide`),
+          by = c("MODYNo")
+        )
+    }
+    
+    
+    dataset_formatted <- dataset_formatted %>%
+      mutate(
+        C = ifelse(
+          ## if UCPCR isn't missing
+          !is.na(`UCPCR Value`),
+          ifelse(
+            `UCPCR Value` > 0.2,
+            1,
+            0
+            ),
+          ## if C-peptide isn't missing
+          ifelse(
+            !is.na(`C-Peptide`),
+            ifelse(
+              `C-Peptide` > 200,
+              1,
+              0
+              ),
+            NA
+            )
+          )
+        )
     
     
   }
@@ -595,11 +710,223 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     
     ## three variables, one for each each ab, 0 or 1 or NA
     
+    if (investigate == TRUE) {
+      dataset_investigate <- dataset_investigate %>%
+        left_join(
+          dataset_formatted %>%
+            select(MODYNo, `GAD -ve`, `GAD +ve`, `GAD -ve Exeter`, `GAD +ve Exeter`, `ZnT8 -ve`, `ZnT8 +ve`, `ZnT8 -ve Exeter`, `ZnT8 +ve Exeter`, `IA2 -ve`, `IA2 +ve`) %>%
+            mutate(
+              GAD_non_Exeter = ifelse(
+                `GAD -ve` == TRUE & `GAD +ve` == TRUE,
+                TRUE,
+                NA
+              ),
+              GAD_Exeter = ifelse(
+                `GAD -ve Exeter` == TRUE & `GAD +ve Exeter` == TRUE,
+                TRUE,
+                NA
+              ),
+              ZnT8_non_Exeter = ifelse(
+                `ZnT8 -ve` == TRUE & `ZnT8 +ve` == TRUE,
+                TRUE,
+                NA
+              ),
+              ZnT8_Exeter = ifelse(
+                `ZnT8 -ve Exeter` == TRUE & `ZnT8 +ve Exeter` == TRUE,
+                TRUE,
+                NA
+              ),
+              IA2_non_Exeter = ifelse(
+                `IA2 -ve` == TRUE & `IA2 +ve` == TRUE,
+                TRUE,
+                NA
+              )
+            ) %>%
+            select(MODYNo, GAD_non_Exeter, GAD_Exeter, ZnT8_non_Exeter, ZnT8_Exeter, IA2_non_Exeter),
+          by = c("MODYNo")
+        )
+    }
+    
+    dataset_formatted <- dataset_formatted %>%
+      ## Create variables on each antibody and location
+      mutate(
+        GAD_non_Exeter_test_result = ifelse(
+          `GAD -ve` == TRUE & `GAD +ve` == FALSE,
+          "Negative",
+          ifelse(
+            `GAD -ve` == FALSE & `GAD +ve` == TRUE,
+            "Positive",
+            NA
+          )
+        ),
+        GAD_Exeter_test_result = ifelse(
+          `GAD -ve Exeter` == TRUE & `GAD +ve Exeter` == FALSE,
+          "Negative",
+          ifelse(
+            `GAD -ve Exeter` == FALSE & `GAD +ve Exeter` == TRUE,
+            "Positive",
+            NA
+          )
+        ),
+        ZnT8_non_Exeter_test_result = ifelse(
+          `ZnT8 -ve` == TRUE & `ZnT8 +ve` == FALSE,
+          "Negative",
+          ifelse(
+            `ZnT8 -ve` == FALSE & `ZnT8 +ve` == TRUE,
+            "Positive",
+            NA
+          )
+        ),
+        ZnT8_Exeter_test_result = ifelse(
+          `ZnT8 -ve Exeter` == TRUE & `ZnT8 +ve Exeter` == FALSE,
+          "Negative",
+          ifelse(
+            `ZnT8 -ve Exeter` == FALSE & `ZnT8 +ve Exeter` == TRUE,
+            "Positive",
+            NA
+          )
+        ),
+        IA2_non_Exeter_test_result = ifelse(
+          `IA2 -ve` == TRUE & `IA2 +ve` == FALSE,
+          "Negative",
+          ifelse(
+            `IA2 -ve` == FALSE & `IA2 +ve` == TRUE,
+            "Positive",
+            NA
+          )
+        )
+      ) %>%
+      ## Create general variable result
+      mutate(
+        ### GAD
+        GAD_final = ifelse(
+          #### If Exeter isn't missing, check result in Exeter, otherwise check result in non-Exeter
+          !is.na(GAD_Exeter_test_result),
+          ifelse(
+            GAD_Exeter_test_result == "Positive",
+            1,
+            0
+          ),
+          #### If non-Exeter isn't missing, check result in non-Exeter, other NA
+          ifelse(
+            !is.na(GAD_non_Exeter_test_result),
+            ifelse(
+              GAD_non_Exeter_test_result == "Positive",
+              1,
+              0
+            ),
+            NA
+          )
+        ),
+        ZnT8_final = ifelse(
+          #### If Exeter isn't missing, check result in Exeter, otherwise check result in non-Exeter
+          !is.na(ZnT8_Exeter_test_result),
+          ifelse(
+            ZnT8_Exeter_test_result == "Positive",
+            1,
+            0
+          ),
+          #### If non-Exeter isn't missing, check result in non-Exeter, other NA
+          ifelse(
+            !is.na(ZnT8_non_Exeter_test_result),
+            ifelse(
+              ZnT8_non_Exeter_test_result == "Positive",
+              1,
+              0
+            ),
+            NA
+          )
+        ),
+        IA2_final = ifelse(
+          #### If non-Exeter isn't missing, check result in non-Exeter, other NA
+          !is.na(IA2_non_Exeter_test_result),
+          ifelse(
+            IA2_non_Exeter_test_result == "Positive",
+            1,
+            0
+          ),
+          NA
+        )
+      ) %>%
+      # add variable with how many tests were done
+      mutate(
+        ab_tested = ifelse(
+          !is.na(GAD_final) & !is.na(ZnT8_final) & !is.na(IA2_final),
+          3,
+          ifelse(
+            (!is.na(GAD_final) & !is.na(ZnT8_final) & is.na(IA2_final)) | (!is.na(GAD_final) & is.na(ZnT8_final) & !is.na(IA2_final)) | (is.na(GAD_final) & !is.na(ZnT8_final) & !is.na(IA2_final)),
+            2,
+            ifelse(
+              (!is.na(GAD_final) & is.na(ZnT8_final) & is.na(IA2_final)) | (is.na(GAD_final) & !is.na(ZnT8_final) & is.na(IA2_final)) | (is.na(GAD_final) & is.na(ZnT8_final) & !is.na(IA2_final)),
+              1,
+              ifelse(
+                is.na(GAD_final) & is.na(ZnT8_final) & is.na(IA2_final),
+                0,
+                NA
+                )
+              )
+            )
+          )
+      )
+    # add variable with how many positives you had
+    dataset_formatted$abcat = rowSums(dataset_formatted %>% select(GAD_final, ZnT8_final, IA2_final), na.rm = TRUE)
+    dataset_formatted <- dataset_formatted %>%
+      mutate(abcat = ifelse(
+        ab_tested == 0,
+        NA,
+        abcat
+      ))
+    
+    
+    ## create main antibody variable
+    dataset_formatted <- dataset_formatted %>%
+      mutate(
+        A = ifelse(
+          ab_tested == 0,
+          NA,
+          ifelse(
+            abcat > 0,
+            1,
+            0
+          )
+        )
+      )
+    
   }
   
   #:----- MODY outcome
   
-  
+  dataset_formatted <- dataset_formatted %>%
+    mutate(
+      tested_1 = ifelse(
+        P291fsinsCResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_2 = ifelse(
+        HNF1aTestResult %in% c(NA, "No Test"),
+        0,
+        1
+      ),
+      tested_3 = ifelse(
+        HNF4aTestResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_4 = ifelse(
+        GlucokinaseResult %in% c(NA),
+        0,
+        1
+      )
+    ) %>%
+    mutate(
+      MODY_tests = tested_1 + tested_2 + tested_3 + tested_4,
+      MODY_tested = ifelse(
+        MODY_tests > 0,
+        TRUE,
+        FALSE
+      )
+    )
   
   
   
