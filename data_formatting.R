@@ -26,26 +26,33 @@
 #' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
 #' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
 #' }
+#' 
+#' dataset_investigate <- formatting(dataset_referrals, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = FALSE) {
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = NULL) {
   
   ### Function checks
-  ## Ensure type of diabetes is chosen
-  if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
-  if (!(type %in% c("Type 1", "Type 2"))) {("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
-  ## Ensure ethnicity is chosen 
-  if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
-  if (!(ethnicity %in% c("White", "Non-White"))) {("'ethnicity' must be defined: 'White' or 'Non-White'.")}
-  ## Ensure gene_type is chosen 
-  if (is.null(gene_type)) {stop("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
-  if (!(gene_type %in% c("Primary", "Secondary"))) {("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
-  ## Ensure proband is chosen correctly
-  if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
-  if (!(proband %in% c("Proband", "All"))) {("'proband' must be defined: 'Proband' or 'All'.")}
+  ## Print out diagnosis
+  if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
   ## Ensure investigate is chosen correctly
-  if (is.null(investigate)) {stop("'investigate' must be defined: 'TRUE' or 'FALSE'.")}
-  if (!(investigate %in% c("TRUE", "FALSE"))) {("'investigate' must be defined: 'TRUE' or 'FALSE'.")}
+  if (!(investigate %in% c(NULL, "Rules", "Missing"))) {stop("'investigate' must be defined as: NULL or 'Rules' or 'Missing'.")}
+  if (is.null(investigate)) {
+    ## Ensure type of diabetes is chosen
+    if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
+    if (!(type %in% c("Type 1", "Type 2"))) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
+    ## Ensure ethnicity is chosen 
+    if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
+    if (!(ethnicity %in% c("White", "Non-White"))) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
+    ## Ensure gene_type is chosen 
+    if (!(gene_type %in% c("Primary", "Secondary"))) {stop("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
+    ## Ensure proband is chosen correctly
+    if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
+    if (!(proband %in% c("Proband", "All"))) {stop("'proband' must be defined: 'Proband' or 'All'.")}
+  } else {
+    type = "Type 1"
+  }
+  
   
   ### Libraries needed
   require(tidyverse)
@@ -60,7 +67,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset
   
   ### set up dataset for investigate
-  if (investigate == TRUE) {
+  if (investigate %in% c("Rules", "Missing")) {
     dataset_investigate <- dataset_formatted %>%
       select(MODYNo)
   }
@@ -186,7 +193,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
   ## If 'investigate' is FALSE, then select one of the types
-  if (investigate == "FALSE") {
+  if (is.null(investigate)) {
     ## Select the specific Type and discard the variable created to define them
     if (type == "Type 1") {
       dataset_formatted <- dataset_formatted %>%
@@ -278,7 +285,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   
   ## Select the specific Ethnicity and discard the variable created to define them
-  if (investigate == FALSE) {
+  if (is.null(investigate)) {
     if (ethnicity == "White") {
       dataset_formatted <- dataset_formatted %>%
         filter(Eth5 == "White")
@@ -327,7 +334,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
   
-  if (investigate == FALSE){
+  if (is.null(investigate)) {
     if (gene_type == "Primary") {
       dataset_formatted <- dataset_formatted %>%
         filter(gene_type %in% c("Primary", NA)) %>%
@@ -354,18 +361,12 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
   ## Select the specific Proband choice made
-  if (investigate == FALSE) {
+  if (is.null(investigate)) {
     if (proband == "Proband") {
       dataset_formatted <- dataset_formatted %>%
         filter(proband == "Proband")
     }
   }
-  
-  
-  
-  ###
-  # Maybe add relationship to include non-blood relation
-  ###
   
   
   
@@ -421,7 +422,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- BMI
   
   ### Need to make sure BMI values are within sensible ranges
-  if (investigate == TRUE) {
+  if (investigate == "Rules") {
     ## low values
     dataset_investigate <- dataset_investigate %>%
       left_join(
@@ -429,9 +430,13 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           select(MODYNo, BMI, agerec) %>%
           mutate(
             BMI_check = ifelse(
-              (agerec > 17 & BMI < 15) | BMI > 50,
-              TRUE,
-              NA
+              agerec > 17 & BMI < 15,
+              "adult bmi <15",
+              ifelse(
+                BMI > 50,
+                "bmi >50",
+                NA
+              )
             )
           ) %>%
           select(-BMI, -agerec),
@@ -486,7 +491,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   
   ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
-  if (investigate == TRUE) {
+  if (investigate == "Rules") {
     ## low values
     dataset_investigate <- dataset_investigate %>%
       left_join(
@@ -494,19 +499,31 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           select(MODYNo, HbA1c, Hba1c2, IFCCHBA1C) %>%
           mutate(
             HbA1c_check = ifelse(
-              HbA1c < 4.5 | HbA1c > 20,
-              TRUE,
-              NA
+              HbA1c < 4.5,
+              "<4.5 or <25.7",
+              ifelse(
+                HbA1c > 20,
+                ">20 or >195.1",
+                NA
+              )
             ),
             Hba1c2_check = ifelse(
-              Hba1c2 < 4.5 | Hba1c2 > 20,
-              TRUE,
-              NA
+              Hba1c2 < 4.5,
+              "<4.5 or <25.7",
+              ifelse(
+                Hba1c2 > 20,
+                ">20 or >195.1",
+                NA
+              )
             ),
             IFCCHBA1C_check = ifelse(
-              IFCCHBA1C < 4.5 | IFCCHBA1C > 20,
-              TRUE,
-              NA
+              IFCCHBA1C < 4.5,
+              "<4.5 or <25.7",
+              ifelse(
+                IFCCHBA1C > 20,
+                ">20 or >195.1",
+                NA
+              )
             )
           ) %>%
           select(-HbA1c, -Hba1c2, -IFCCHBA1C),
@@ -593,7 +610,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   ####
   
-  if (investigate == TRUE) {
+  if (investigate == "Rules") {
     dataset_investigate <- dataset_investigate %>%
       left_join(
         dataset_formatted %>%
@@ -601,7 +618,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           mutate(
             `Current Trtmnt_check` = ifelse(
               `Current Trtmnt` %in% c("Unsure of text on form", "br"),
-              TRUE,
+              `Current Trtmnt`,
               NA
             )
           ) %>%
@@ -637,7 +654,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- C-peptide
   
   ## Only do this for Type 1
-  if (type == "Type 1") {
+  if (!is.null(investigate) | type == "Type 1") {
     
     # cpeptide > 200 or UCPCR > 0.2
     
@@ -649,26 +666,35 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         `C-Peptide`
       )) 
     
-    if (investigate == TRUE) {
+    if (investigate == "Rules") {
       dataset_investigate <- dataset_investigate %>%
         left_join(
           dataset_formatted %>%
+            filter(progressed_to_insulin == "Type 1") %>%
             select(MODYNo, `UCPCR Value`, `C-peptide units`, `C-Peptide`) %>%
             mutate(
               `UCPCR Value_check` = ifelse(
-                `UCPCR Value` < 0.01 | `UCPCR Value` > 12,
-                TRUE,
-                NA
-                ),
+                `UCPCR Value` < 0.01,
+                "UCPCR < 0.01",
+                ifelse(
+                  `UCPCR Value` > 12,
+                  "UCPCR > 12",
+                  NA
+                )
+              ),
               `C-peptide units_check` = ifelse(
                 `C-peptide units` %in% c("nmol/L", "pml", "nmol/L", "ug/ul"),
-                TRUE,
+                `C-peptide units`,
                 NA
               ),
               `C-Peptide_check` = ifelse(
-                `C-Peptide` < 20 | `C-Peptide` > 5000,
-                TRUE,
-                NA
+                `C-Peptide` < 20,
+                "C-pep <20",
+                ifelse(
+                  `C-Peptide` > 5000,
+                  "C-pep >5000",
+                  NA
+                )
               )
               ) %>%
             select(-`UCPCR Value`, -`C-peptide units`, -`C-Peptide`),
@@ -706,39 +732,40 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- Antibody
   
   ## Only do this for Type 1
-  if (type == "Type 1") {
+  if (!is.null(investigate) | type == "Type 1") {
     
     ## three variables, one for each each ab, 0 or 1 or NA
     
-    if (investigate == TRUE) {
+    if (investigate == "Rules") {
       dataset_investigate <- dataset_investigate %>%
         left_join(
           dataset_formatted %>%
+            filter(progressed_to_insulin == "Type 1") %>%
             select(MODYNo, `GAD -ve`, `GAD +ve`, `GAD -ve Exeter`, `GAD +ve Exeter`, `ZnT8 -ve`, `ZnT8 +ve`, `ZnT8 -ve Exeter`, `ZnT8 +ve Exeter`, `IA2 -ve`, `IA2 +ve`) %>%
             mutate(
               GAD_non_Exeter = ifelse(
                 `GAD -ve` == TRUE & `GAD +ve` == TRUE,
-                TRUE,
+                "-ve & +ve",
                 NA
               ),
               GAD_Exeter = ifelse(
                 `GAD -ve Exeter` == TRUE & `GAD +ve Exeter` == TRUE,
-                TRUE,
+                "-ve & +ve",
                 NA
               ),
               ZnT8_non_Exeter = ifelse(
                 `ZnT8 -ve` == TRUE & `ZnT8 +ve` == TRUE,
-                TRUE,
+                "-ve & +ve",
                 NA
               ),
               ZnT8_Exeter = ifelse(
                 `ZnT8 -ve Exeter` == TRUE & `ZnT8 +ve Exeter` == TRUE,
-                TRUE,
+                "-ve & +ve",
                 NA
               ),
               IA2_non_Exeter = ifelse(
                 `IA2 -ve` == TRUE & `IA2 +ve` == TRUE,
-                TRUE,
+                "-ve & +ve",
                 NA
               )
             ) %>%
@@ -936,12 +963,17 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   ####
   
   
-
+  #:----- Investigate Rules dataset
+  
+  if (investigate %in% c("Rules", "Missing")) {
+    # remove rows that are all NA (apart from MODYNo)
+    dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
     
+    # return dataset
+    return(dataset_investigate)
+  }
   
-  
-  
-  
-  
-  
+
+
 }
+
