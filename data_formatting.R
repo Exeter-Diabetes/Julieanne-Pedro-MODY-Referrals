@@ -21,13 +21,16 @@
 #' @examples
 #' \dontrun{
 #' 
-#' ## load the excel tables like so (so that it understands NA properly:
+#' ## load the excel tables like so (so that it understands NA properly):
 #' library(readxl)
 #' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
 #' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
+#' dataset <- read_excel("mody_35yrs_08_11_2023.xlsx", guess_max = 100000)
 #' }
 #' 
-#' dataset_investigate <- formatting(dataset_referrals, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
+#' source("data_formatting.R")
+#' 
+#' dataset_investigate <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
 #'
 #' @export
 formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = NULL) {
@@ -181,7 +184,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       "Type 2",
       ifelse(
         # rules for Type 1: insulin treated within 6 months TRUE, OR, insulin treated within 6 months FALSE but initial treatment is insulin
-        InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "MDI" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "insulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
+        InsulinTreatedWithin6Months == "TRUE" | (InsulinTreatedWithin6Months == "FALSE" & (`Initial Trtmnt` == "Insulin" | `Initial Trtmnt` == "MDI" | `Initial Trtmnt` == "MDF" | `Initial Trtmnt` == "Humulin" | `Initial Trtmnt` == "insulin" | `Initial Trtmnt` == "INSULIN" | `Initial Trtmnt` == "insulin pump" | `Initial Trtmnt` == "OHA & INS")),
         "Type 1",
         "Type 2"
       )
@@ -215,41 +218,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #####
   # Just a check for whether there is a new type of reported ethnicity that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new ethnicities
-  ethnicity_test <- dataset_formatted$EthnicOrigin %in% c("Aboriginal", "Afghanistan", "African", "African Arabic", "African Carribean", "Afro-caribbean", "Afro caribbean", "Afro carribean",
-                                                          "Afrocaribbean", "Afrocarribean", "Albanian", "Algerian", "Any other group", "Arab", "Arabic", "Arabic (Palestinian)", "Arabic (sudanese)", 
-                                                          "Arabic: Egyptian", "Argentinian", "Aryan", "Ashkenazi", "Ashkenazi Jew", "Ashkenazi Jewish", "Asian", "Asian (Bangladesh)", 
-                                                          "Asian (Bangladeshi)", "Asian (British Pakistani)", "Asian (Fllipino)", "Asian (Indian)", "Asian (Iranian)", "Asian (Iraqi)", 
-                                                          "Asian (Kurdistan)", "Asian (Nepalese)", "Asian (Pakistani)", "Asian (Palestinian)", "Asian (South Asian)","Asian (South East)", 
-                                                          "Asian (Sri Lankan)", "Asian (Thai)", "Asian (Turkish)", "Asian (Vietnamese)", "Asian British", "Asian Indian", "Asian Sindhi",
-                                                          "Asian Sri Lankan", "Asian/Indian", "Australian", "Baloch", "Bangladeshi", "Bengali", "Black", "Black (African)","Black (Afro-Carribbean)", 
-                                                          "Black (British)", "Black (Caribbean)", "Black (Carribbean)", "Black (Sudanese)", "Black African", "Black British", "Black Caribbean",
-                                                          "Black Carribean", "Brazil", "Brazilian", "British", "British Bangladeshi", "British Indian", "British Pakistani", "Bulgarian", "Canadian first nation", 
-                                                          "Caribbean", "Caribean", "carribean", "Carribean", "Caucasian", "Central American", "Chinese", "Chinese (Hong Kong)", "Cook Island Māori", 
-                                                          "Cuban/black", "Czech", "Duch/Native American", "Dutch", "Eastern European", "Ecuador", "Egyptian", "English", "Eritrea", "Eritrean",
-                                                          "Ethiopian", "Etrtia", "European", "Fijian", "Fijian Indian", "Filipino", "Finnish", "French Canadian", "German", "Greek", "Gwamaa", "Hispanic",
-                                                          "Hungarian", "Icelandic", "indian", "Indian", "INDIAN", "Indian/White mixed", "Indonesian", "Intalian/Maltese/British", "Iran", "Iranian", 
-                                                          "Iraqi", "Irish", "Irish White", "Italian", "Japanese", "Jewish", "Jordan", "Kinh", "Kinh Ethnic", "Korean", "Kurdish", "Kurdistan", 
-                                                          "Latin American", "Lebanese", "Libya", "Malayan", "Maltese", "Maori", "Māori", "Mauritian", "Maurtian", "Mexican", "Middle Eastern", "Mixed", 
-                                                          "Mixed - White & Israeli", "Mixed (Asian-Indian/British Indian)", "Mixed (Eastern Euro and Iraqi)", "Mixed (English-Indonesian)", 
-                                                          "Mixed (European, Chinese)", "Mixed (Fijian-Indian)", "Mixed (Filippino/Irish)", "Mixed (Half Jamacain)", "Mixed (Mauritian/Punjabi Indian)", 
-                                                          "Mixed (White & Black)", "Mixed (White & Hispanic)", "Mixed (White African)", "Mixed (white/Indigenous Canadian)", "Mixed Ashkenazi - Argentina", 
-                                                          "Mixed black & white", "Mixed english and pakistan", "Mixed white & black caribbean", "Mixed white asian", "Mixed: White-Asian", "Moldovan", 
-                                                          "N Irish", "N/A", "Nepalese", "New Zealand", "New Zealander", "Nigerian", "Niuean", "Non-white", "North African", "North American", 
-                                                          "Northern European", "Norwegian/French/Ukrainian", "Not known", "not sated", "Not sated", "not stated", "Not stated", "Not Stated",
-                                                          "Not Stated (African)", "Not Stated (British Bangladeshi)", "Not Stated (British Indian)", "Not Stated (British)", "Not Stated (Greek)", 
-                                                          "Not Stated (Iranian)", "Not stated (Maori)", "Not Stated (Mauritian)", "Not Stated (Moroccan)", "Not Stated (Polish)", "Not Stated (Somalian)", 
-                                                          "Not Stated (Spanish)", "Not Stated (Swedish)", "nto stated", "NZ European", "Other Asian", "Other Mixed", "Other White", "Other White Background", 
-                                                          "Pacifika", "Pakistan", "Pakistani", "Palestinian", "Pashto", "Persian", "Philipinnes", "Phillipines", "Phillipino", "Polish", 
-                                                          "Polynesian", "Polynesian (Maori)", "Polynesian (Tongan)", "Portuguese", "Romani Gypsy", "Romanian", "Samoan", "Saraiki", "SE Asian", 
-                                                          "Sikh", "Singapore", "Somali", "Somalia", "Somalian", "South African", "South American", "South American/Portuguese", "South Asian", 
-                                                          "South East Asian", "Southern European", "Spanish", "Sri Lankan", "Sri Lankan Asian", "Sri Lanken", "Srilankan", "Sudanese", 
-                                                          "Sudanese/British", "Swedish", "Syrian", "Thai", "Tongan", "Turkish", "Turkish Cypriot", "Turkish/Greek", "Turksih", "UK", 
-                                                          "Ukrainian", "Ukranian", "Unknown", "white", "White", "White & Asian", "White & black", "White & Black African", "White & Black Carribean", 
-                                                          "White (albanaian)", "White (Albanian)", "White (Ashkenazi Jewish)", "White (Australian-Polish European)", "White (Australian European)", 
-                                                          "White (Australian)", "White (british)", "White (British)", "White (Eastern European)", "White (Egyptian)", "White (english)", 
-                                                          "White (greek)", "White (Hungarian)", "White (Irish)", "White (New Zealand European)", "White (Nothern Irish)", "White (NZ European)", 
-                                                          "White (Scottish)", "White (south african)", "White (Venezualan)", "White American", "White british", "White British", "White Caucasian", 
-                                                          "White Ireland", "White Irish", "White Italian", "White Middle Eastern", "whtie", "Whtie", NA)
+  ethnicity_test <- dataset_formatted$EthnicOrigin %in% c(ethnicity_groups[,1] %>% unlist(), NA)
   
   # If there are other ethnicities, stop the function so that it can be fixed
   if (sum(ethnicity_test) != nrow(dataset_formatted)) {
@@ -500,28 +469,28 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           mutate(
             HbA1c_check = ifelse(
               HbA1c < 4.5,
-              "<4.5 or <25.7",
+              "HbA1c <4.5 or <25.7",
               ifelse(
                 HbA1c > 20,
-                ">20 or >195.1",
+                "HbA1c >20 or >195.1",
                 NA
               )
             ),
             Hba1c2_check = ifelse(
               Hba1c2 < 4.5,
-              "<4.5 or <25.7",
+              "Hba1c2 <4.5 or <25.7",
               ifelse(
                 Hba1c2 > 20,
-                ">20 or >195.1",
+                "Hba1c2 >20 or >195.1",
                 NA
               )
             ),
             IFCCHBA1C_check = ifelse(
               IFCCHBA1C < 4.5,
-              "<4.5 or <25.7",
+              "IFCCHBA1C <4.5 or <25.7",
               ifelse(
                 IFCCHBA1C > 20,
-                ">20 or >195.1",
+                "IFCCHBA1C >20 or >195.1",
                 NA
               )
             )
@@ -643,7 +612,8 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       # 0 (not on insulin or oha)
       ifelse(
         `Current Trtmnt` %in% c("Diet", "DIET", "Eithroxin", "Hexathyroxinelevothyroxine", 
-                                "non insulin treated", "NONE", "not insulin treated"),
+                                "non insulin treated", "NONE", "not insulin treated", 
+                                "Insulin during pregnancy", "INSULIN during pregnancy"),
         0,
         NA
       )
@@ -741,35 +711,40 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         left_join(
           dataset_formatted %>%
             filter(progressed_to_insulin == "Type 1") %>%
-            select(MODYNo, `GAD -ve`, `GAD +ve`, `GAD -ve Exeter`, `GAD +ve Exeter`, `ZnT8 -ve`, `ZnT8 +ve`, `ZnT8 -ve Exeter`, `ZnT8 +ve Exeter`, `IA2 -ve`, `IA2 +ve`) %>%
+            select(MODYNo, `GAD -ve`, `GAD +ve`, `GAD -ve Exeter`, `GAD +ve Exeter`, `ZnT8 -ve`, `ZnT8 +ve`, `ZnT8 -ve Exeter`, `ZnT8 +ve Exeter`, `IA2 -ve`, `IA2 +ve`, `ICA -ve Exeter`, `ICA +ve Exeter`) %>%
             mutate(
-              GAD_non_Exeter = ifelse(
+              GAD_non_Exeter_check = ifelse(
                 `GAD -ve` == TRUE & `GAD +ve` == TRUE,
-                "-ve & +ve",
+                "Tested -ve & +ve",
                 NA
               ),
-              GAD_Exeter = ifelse(
+              GAD_Exeter_check = ifelse(
                 `GAD -ve Exeter` == TRUE & `GAD +ve Exeter` == TRUE,
-                "-ve & +ve",
+                "Tested -ve & +ve",
                 NA
               ),
-              ZnT8_non_Exeter = ifelse(
+              ZnT8_non_Exeter_check = ifelse(
                 `ZnT8 -ve` == TRUE & `ZnT8 +ve` == TRUE,
-                "-ve & +ve",
+                "Tested -ve & +ve",
                 NA
               ),
-              ZnT8_Exeter = ifelse(
+              ZnT8_Exeter_check = ifelse(
                 `ZnT8 -ve Exeter` == TRUE & `ZnT8 +ve Exeter` == TRUE,
-                "-ve & +ve",
+                "Tested -ve & +ve",
                 NA
               ),
-              IA2_non_Exeter = ifelse(
+              IA2_non_Exeter_check = ifelse(
                 `IA2 -ve` == TRUE & `IA2 +ve` == TRUE,
-                "-ve & +ve",
+                "Tested -ve & +ve",
+                NA
+              ),
+              IA2_Exeter_check = ifelse(
+                `ICA -ve Exeter` == TRUE & `ICA +ve Exeter` == TRUE,
+                "Tested -ve & +ve",
                 NA
               )
             ) %>%
-            select(MODYNo, GAD_non_Exeter, GAD_Exeter, ZnT8_non_Exeter, ZnT8_Exeter, IA2_non_Exeter),
+            select(MODYNo, GAD_non_Exeter_check, GAD_Exeter_check, ZnT8_non_Exeter_check, ZnT8_Exeter_check, IA2_non_Exeter_check, IA2_Exeter_check),
           by = c("MODYNo")
         )
     }
@@ -821,6 +796,15 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
             "Positive",
             NA
           )
+        ),
+        IA2_Exeter_test_result = ifelse(
+          `ICA -ve Exeter` == TRUE & `ICA +ve Exeter` == FALSE,
+          "Negative",
+          ifelse(
+            `ICA -ve Exeter` == FALSE & `ICA +ve Exeter` == TRUE,
+            "Positive",
+            NA
+          )
         )
       ) %>%
       ## Create general variable result
@@ -865,14 +849,23 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           )
         ),
         IA2_final = ifelse(
-          #### If non-Exeter isn't missing, check result in non-Exeter, other NA
-          !is.na(IA2_non_Exeter_test_result),
+          #### If Exeter isn't missing, check result in Exeter, otherwise check result in non-Exeter
+          !is.na(IA2_Exeter_test_result),
           ifelse(
-            IA2_non_Exeter_test_result == "Positive",
+            IA2_Exeter_test_result == "Positive",
             1,
             0
           ),
-          NA
+          #### If non-Exeter isn't missing, check result in non-Exeter, other NA
+          ifelse(
+            !is.na(IA2_non_Exeter_test_result),
+            ifelse(
+              IA2_non_Exeter_test_result == "Positive",
+              1,
+              0
+            ),
+            NA
+          )
         )
       ) %>%
       # add variable with how many tests were done
@@ -926,28 +919,123 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset_formatted %>%
     mutate(
       tested_1 = ifelse(
-        P291fsinsCResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_2 = ifelse(
         HNF1aTestResult %in% c(NA, "No Test"),
         0,
         1
       ),
-      tested_3 = ifelse(
+      tested_2 = ifelse(
         HNF4aTestResult %in% c(NA),
         0,
         1
       ),
-      tested_4 = ifelse(
+      tested_3 = ifelse(
         GlucokinaseResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_4 = ifelse(
+        CinsSeqResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_5 = ifelse(
+        P291fsinsCResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_6 = ifelse(
+        HNF1bResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_7 = ifelse(
+        Kir62Result %in% c(NA),
+        0,
+        1
+      ),
+      tested_8 = ifelse(
+        InsulinResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_9 = ifelse(
+        ABCC8Result %in% c(NA),
+        0,
+        1
+      ),
+      tested_10 = ifelse(
+        HNF1bDosResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_11 = ifelse(
+        GCKDosResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_12 = ifelse(
+        HNF1a4aDosResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_13 = ifelse(
+        MODYMLPAResult %in% c(NA),
+        0,
+        1
+      ),
+      tested_14 = ifelse(
+        `11p15Result` %in% c(NA),
+        0,
+        1
+      ),
+      tested_15 = ifelse(
+        `6qResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_16 = ifelse(
+        `ABCC8MLPAResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_17 = ifelse(
+        `NGSPancreaticResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_18 = ifelse(
+        `Chartier_HNF4aTestResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_19 = ifelse(
+        `Chartier_HNF1a4aDosResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_20 = ifelse(
+        `Chartier_MODYMLPAResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_21 = ifelse(
+        `ExomeResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_22 = ifelse(
+        `GenomeResult` %in% c(NA),
+        0,
+        1
+      ),
+      tested_23 = ifelse(
+        `GenomeResult` %in% c(NA),
         0,
         1
       )
     ) %>%
     mutate(
-      MODY_tests = tested_1 + tested_2 + tested_3 + tested_4,
+      MODY_tests = tested_1 + tested_2 + tested_3 + tested_4 + tested_5 + tested_6 + tested_7 + tested_8 + tested_9 + tested_10 + tested_11 + tested_12 + tested_13 + tested_14 + tested_15 + tested_16 + tested_17 + tested_18 + tested_19 + tested_20 + tested_21 + tested_22 + tested_23,
       MODY_tested = ifelse(
         MODY_tests > 0,
         TRUE,
@@ -970,7 +1058,8 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
     
     # return dataset
-    return(dataset_investigate)
+    return(dataset_investigate %>%
+             cbind(Checked = as.logical(NA)))
   }
   
 
