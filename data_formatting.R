@@ -31,16 +31,33 @@
 #' source("data_formatting.R")
 #' 
 #' dataset_investigate <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
+#' 
+#' # Pedro investigation:
+#' ## White C+/A- progressed to insulin <6 months
+#' dataset_white_ca_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", proband = "Proband")
+#' ## White did not progress to insulin <6 months
+#' dataset_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 2", ethnicity = "White", proband = "Proband")
+#'
+#' # Julieanne investigation:
+#' ## Non-White progressed to insulin < 6 months
+#' dataset_non_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "Non-White", proband = "Proband")
+#' ## Non-White did not progress to insulin <6 months
+#' dataset_non_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 2", ethnicity = "Non-White", proband = "Proband")
+#'
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = NULL) {
-  
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = FALSE) {
+
   ### Function checks
   ## Print out diagnosis
   if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
   ## Ensure investigate is chosen correctly
-  if (!(investigate %in% c(NULL, "Rules", "Missing"))) {stop("'investigate' must be defined as: NULL or 'Rules' or 'Missing'.")}
-  if (is.null(investigate)) {
+  if (!missing(investigate)) {
+    if (!(investigate %in% c(FALSE, "Rules", "Missing"))) {stop("'investigate' must be defined as: FALSE or 'Rules' or 'Missing'.")}
+  } else {
+    investigate <- FALSE
+  }
+  if (investigate == FALSE) {
     ## Ensure type of diabetes is chosen
     if (is.null(type)) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
     if (!(type %in% c("Type 1", "Type 2"))) {stop("'type' of diabetes must be defined: 'Type 1' or 'Type 2'.")}
@@ -99,6 +116,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     print("###### Age of diagnosis #######")
     print("######## Range 1 - 35 #########")
     print(summary(dataset_formatted$`Age Diag`))
+    print(paste0("Patients n = ", nrow(dataset_formatted)))
   }
   
   
@@ -141,6 +159,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   
   if (diagnosis == TRUE) {
+    print("###############################")
     print("### Exclude specific status ###")
     print(dataset_formatted %>% filter(Status_interim == "Remove") %>% select(Status) %>% unique() %>% unlist() %>% as.vector())
     print("###############################")
@@ -153,6 +172,81 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset_formatted %>%
     filter(Status_interim == "Keep") %>%
     select(-Status_interim)
+  
+  
+  
+  #:----- Gene specification
+  
+  #####
+  # Just a check for whether there is a new type of reported gene that we haven't seen yet
+  # This is being added because we will be rerunning this on newer versions of the dataset which may have new gene
+  gene_test <- dataset_formatted$Gene %in% c("?UQCRH", "3243", "6q24", "9pdel", "ABCC8", "ABCC8 & HNF4A", "AIRE", "CEL", "CISD2", 
+                                             "CTLA4", "DNAJC3", "EIF2AK3", "FOXP3", "GATA4", "GATA6", "GCK", "HNF1a", "HNF1A", 
+                                             "HNF1A & GCK", "HNF1A & HNF4A", "HNF1b", "HNF1B", "HNF4a", "HNF4A", "HNF4A & INSR", 
+                                             "IL2RA", "INS", "INSR", "KCNJ11", "LMNA", "MAFA", "MANF", "NeuroD1", "NEUROD1", 
+                                             "NEUROG3", "NGN3", "PAX6", "PDX1", "PIK3R1", "PPARG", "PTF1A", "RFX6", "SLC19A2", 
+                                             "SLC29A3", "STAT1", "TRMT10A", "WFS1", "ZBTB20", "ZFP57", "ZNF808", NA,
+                                             "STAT3", "LRBA", "BWS", "ADA")
+  
+  # If there are other gene, stop the function so that it can be fixed
+  if (sum(gene_test) != nrow(dataset_formatted)) {
+    print("There is new gene which were not considered:")
+    print(unique(dataset_formatted$Gene[!gene_test]))
+    stop()
+  }
+  ####
+  
+  # Set 'Keep' or 'Remove' to those with the gene we want/don't, respectively
+  dataset_formatted <- dataset_formatted %>%
+    mutate(gene_type = ifelse(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A"), "Primary", ifelse(is.na(Gene), NA, "Secondary")))
+  
+  
+  if (diagnosis == TRUE) {
+    print("###############################")
+    print("### Only include specific genes ###")
+    print(c("", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "GCK"))
+    print("###############################")
+    print(table(dataset_formatted$Gene, dataset_formatted$gene_type, useNA = "ifany"))
+    print("###############################")
+    print(table(dataset_formatted$gene_type, useNA = "ifany"))
+  }
+  
+  
+  if (investigate == FALSE) {
+    if (gene_type == "Primary") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(gene_type %in% c("Primary", NA)) %>%
+        select(-gene_type)
+    } else {
+      dataset_formatted <- dataset_formatted %>%
+        filter(gene_type == "Secondary") %>%
+        select(-gene_type)
+    }
+  }
+  
+  
+  #:----- Proband
+  
+  ### Needs to be done, but require the specific variable
+  dataset_formatted <- dataset_formatted %>%
+    mutate(proband = ifelse(endsWith(MODYNo, "01"), "Proband", "Not Proband"))
+  
+  
+  if (diagnosis == TRUE) {
+    print("### Probands end with 01 ###")
+    print("###############################")
+    print(table(dataset_formatted$proband, useNA = "ifany"))
+  }
+  
+  ## Select the specific Proband choice made
+  if (investigate == FALSE) {
+    if (proband == "Proband") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(proband == "Proband")
+    }
+  }
+  
+  
   
   #:----- Split between Type 1 or Type 2 people
   
@@ -193,10 +287,11 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   if (diagnosis == TRUE) {
     print("###### Type 1 vs Type 2 #######")
     print(table(dataset_formatted$`Initial Trtmnt`, dataset_formatted$progressed_to_insulin, useNA = "ifany"))
+    print(table(dataset_formatted$progressed_to_insulin, useNA = "ifany"))
   }
   
   ## If 'investigate' is FALSE, then select one of the types
-  if (is.null(investigate)) {
+  if (investigate == FALSE) {
     ## Select the specific Type and discard the variable created to define them
     if (type == "Type 1") {
       dataset_formatted <- dataset_formatted %>%
@@ -254,88 +349,34 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   
   ## Select the specific Ethnicity and discard the variable created to define them
-  if (is.null(investigate)) {
+  if (investigate == FALSE) {
     if (ethnicity == "White") {
+      
+      if (diagnosis == TRUE) {
+        dataset_formatted %>%
+          mutate(Ethnicity_exclude = ifelse(Eth5 == "White", "Keep", "Exclude")) %>%
+          select(Ethnicity_exclude) %>%
+          table(useNA = "ifany") %>%
+          print()
+      }
+      
       dataset_formatted <- dataset_formatted %>%
         filter(Eth5 == "White")
     } else if(ethnicity == "Non-White") {
+      
+      if (diagnosis == TRUE) {
+        dataset_formatted %>%
+          mutate(Ethnicity_exclude = ifelse(Eth5 != "White", "Keep", "Exclude")) %>%
+          select(Ethnicity_exclude) %>%
+          table(useNA = "ifany") %>%
+          print()
+      }
+      
       dataset_formatted <- dataset_formatted %>%
         filter(Eth5 != "White")
     }
   }
   
-  
-  
-  
-  #:----- Gene specification
-  
-  #####
-  # Just a check for whether there is a new type of reported gene that we haven't seen yet
-  # This is being added because we will be rerunning this on newer versions of the dataset which may have new gene
-  gene_test <- dataset_formatted$Gene %in% c("?UQCRH", "3243", "6q24", "9pdel", "ABCC8", "ABCC8 & HNF4A", "AIRE", "CEL", "CISD2", 
-                                             "CTLA4", "DNAJC3", "EIF2AK3", "FOXP3", "GATA4", "GATA6", "GCK", "HNF1a", "HNF1A", 
-                                             "HNF1A & GCK", "HNF1A & HNF4A", "HNF1b", "HNF1B", "HNF4a", "HNF4A", "HNF4A & INSR", 
-                                             "IL2RA", "INS", "INSR", "KCNJ11", "LMNA", "MAFA", "MANF", "NeuroD1", "NEUROD1", 
-                                             "NEUROG3", "NGN3", "PAX6", "PDX1", "PIK3R1", "PPARG", "PTF1A", "RFX6", "SLC19A2", 
-                                             "SLC29A3", "STAT1", "TRMT10A", "WFS1", "ZBTB20", "ZFP57", "ZNF808", NA,
-                                             "STAT3", "LRBA", "BWS", "ADA")
-  
-  # If there are other gene, stop the function so that it can be fixed
-  if (sum(gene_test) != nrow(dataset_formatted)) {
-    print("There is new gene which were not considered:")
-    print(unique(dataset_formatted$Gene[!gene_test]))
-    stop()
-  }
-  ####
-  
-  # Set 'Keep' or 'Remove' to those with the gene we want/don't, respectively
-  dataset_formatted <- dataset_formatted %>%
-    mutate(gene_type = ifelse(Gene %in% c("GCK", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "HNF1A & GCK", "HNF1A & HNF4A"), "Primary", ifelse(is.na(Gene), NA, "Secondary")))
-  
-  
-  if (diagnosis == TRUE) {
-    print("### Only include specific genes ###")
-    print(c("", "HNF1a", "HNF1A", "HNF4a", "HNF4A", "GCK"))
-    print("###############################")
-    print(table(dataset_formatted$Gene, dataset_formatted$gene_type, useNA = "ifany"))
-    print("###############################")
-    print(table(dataset_formatted$gene_type, useNA = "ifany"))
-  }
-  
-  
-  if (is.null(investigate)) {
-    if (gene_type == "Primary") {
-      dataset_formatted <- dataset_formatted %>%
-        filter(gene_type %in% c("Primary", NA)) %>%
-        select(-gene_type)
-    } else {
-      dataset_formatted <- dataset_formatted %>%
-        filter(gene_type == "Secondary") %>%
-        select(-gene_type)
-    }
-  }
-  
-
-  #:----- Proband
-  
-  ### Needs to be done, but require the specific variable
-  dataset_formatted <- dataset_formatted %>%
-    mutate(proband = ifelse(endsWith(MODYNo, "01"), "Proband", "Not Proband"))
-  
-  
-  if (diagnosis == TRUE) {
-    print("### Probands end with 01 ###")
-    print("###############################")
-    print(table(dataset_formatted$proband, useNA = "ifany"))
-  }
-  
-  ## Select the specific Proband choice made
-  if (is.null(investigate)) {
-    if (proband == "Proband") {
-      dataset_formatted <- dataset_formatted %>%
-        filter(proband == "Proband")
-    }
-  }
   
   
   
@@ -453,10 +494,6 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         IFCCHBA1C
         )
       )
-  
-  print("This warning is okay.")
-  
-
   
   
   ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
@@ -624,7 +661,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- C-peptide
   
   ## Only do this for Type 1
-  if (!is.null(investigate) | type == "Type 1") {
+  if (investigate != FALSE | type == "Type 1") {
     
     # cpeptide > 200 or UCPCR > 0.2
     
@@ -702,7 +739,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- Antibody
   
   ## Only do this for Type 1
-  if (!is.null(investigate) | type == "Type 1") {
+  if (investigate != FALSE | type == "Type 1") {
     
     ## three variables, one for each each ab, 0 or 1 or NA
     
@@ -1040,6 +1077,15 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         MODY_tests > 0,
         TRUE,
         FALSE
+      ),
+      M = ifelse(
+        is.na(Gene) & MODY_tested == FALSE,
+        NA,
+        ifelse(
+          is.na(Gene) & MODY_tested == TRUE,
+          0,
+          1
+        )
       )
     )
   
@@ -1049,6 +1095,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   ####
   ####    Final formatting and output dataset
   ####
+  
   
   
   #:----- Investigate Rules dataset
@@ -1063,6 +1110,88 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
 
-
+  
+  #:----- Analysis datasets
+  
+  ## Type 1 and White
+  if (type == "Type 1" & ethnicity == "White") {
+    
+    #:----- Exclude those C- or A+
+    
+    dataset_formatted <- dataset_formatted %>%
+      mutate(informative_biomarkers = ifelse(
+        ## The right combination
+        C == 1 & A == 0,
+        "C+ AND A-",
+        ## The wrong combination
+        ifelse(
+          is.na(C) & A == 1,
+         "C- OR A+",
+         ifelse(
+           C == 0 & is.na(A),
+           "C- OR A+",
+           ifelse(
+             C == 0 & A == 1,
+             "C- OR A+",
+             NA
+           )
+         )
+        )
+      ))
+    
+    
+    if (diagnosis == TRUE) {
+      print("###### Informative biomarkers: exclude C- or A+ #######")
+      print(table(dataset_formatted$informative_biomarkers, useNA = "ifany"))
+    }
+    
+    ## Select the right biomarkers
+    dataset_formatted <- dataset_formatted %>%
+      filter(!is.na(informative_biomarkers)) %>%
+      filter(informative_biomarkers == "C+ AND A-") %>%
+      select(-informative_biomarkers) 
+    
+    if (diagnosis == TRUE) {
+      print(paste0("Patients n = ", nrow(dataset_formatted)))
+    }
+    
+    return(dataset_formatted)
+    
+  }
+  
+  # Type 2 and White
+  if (type == "Type 2" & ethnicity == "White") {
+    
+    if (diagnosis == TRUE) {
+      print(paste0("Patients n = ", nrow(dataset_formatted)))
+    }
+    
+    return(dataset_formatted)
+    
+  }
+  
+  
+  # Type 1 and Non-White
+  if (type == "Type 1" & ethnicity != "White") {
+    
+    if (diagnosis == TRUE) {
+      print(paste0("Patients n = ", nrow(dataset_formatted)))
+    }
+    
+    return(dataset_formatted)
+    
+  }
+  
+  # Type 2 and Non-White
+  if (type == "Type 2" & ethnicity != "White") {
+    
+    if (diagnosis == TRUE) {
+      print(paste0("Patients n = ", nrow(dataset_formatted)))
+    }
+    
+    return(dataset_formatted)
+    
+  }
+  
 }
 
