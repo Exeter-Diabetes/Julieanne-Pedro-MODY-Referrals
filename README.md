@@ -5,8 +5,8 @@ This repository contains code for formatting the referral dataset into usable an
 
 ### White analysis
 
-[White analysis](Flowcharts/Flowchart - White.pdf)
+[White analysis](https://github.com/Exeter-Diabetes/Julieanne-Pedro-MODY/blob/main/Flowcharts/Flowchart%20-%20White.pdf)
 
 ### Non-White analysis
 
-[Non-White analysis](Flowcharts/Flowchart - White.pdf)
+[Non-White analysis](https://github.com/Exeter-Diabetes/Julieanne-Pedro-MODY/blob/main/Flowcharts/Flowchart%20-%20Non-White.pdf)
