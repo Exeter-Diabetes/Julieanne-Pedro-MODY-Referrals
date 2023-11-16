@@ -32,6 +32,8 @@
 #' 
 #' dataset_investigate <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
 #' 
+#' write.csv(dataset_investigate, "Investigate_rules_patients.csv", row.names = FALSE)
+#' 
 #' # Pedro investigation:
 #' ## White C+/A- progressed to insulin <6 months
 #' dataset_white_ca_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", proband = "Proband")
@@ -953,126 +955,13 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   #:----- MODY outcome
   
+  dataset_formatted_results <- dataset_formatted %>%
+    select(contains("Result") & !contains(" "))
+  
+  # make sure it isn't na and it isn't "No Test"
   dataset_formatted <- dataset_formatted %>%
     mutate(
-      tested_1 = ifelse(
-        HNF1aTestResult %in% c(NA, "No Test"),
-        0,
-        1
-      ),
-      tested_2 = ifelse(
-        HNF4aTestResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_3 = ifelse(
-        GlucokinaseResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_4 = ifelse(
-        CinsSeqResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_5 = ifelse(
-        P291fsinsCResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_6 = ifelse(
-        HNF1bResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_7 = ifelse(
-        Kir62Result %in% c(NA),
-        0,
-        1
-      ),
-      tested_8 = ifelse(
-        InsulinResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_9 = ifelse(
-        ABCC8Result %in% c(NA),
-        0,
-        1
-      ),
-      tested_10 = ifelse(
-        HNF1bDosResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_11 = ifelse(
-        GCKDosResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_12 = ifelse(
-        HNF1a4aDosResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_13 = ifelse(
-        MODYMLPAResult %in% c(NA),
-        0,
-        1
-      ),
-      tested_14 = ifelse(
-        `11p15Result` %in% c(NA),
-        0,
-        1
-      ),
-      tested_15 = ifelse(
-        `6qResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_16 = ifelse(
-        `ABCC8MLPAResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_17 = ifelse(
-        `NGSPancreaticResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_18 = ifelse(
-        `Chartier_HNF4aTestResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_19 = ifelse(
-        `Chartier_HNF1a4aDosResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_20 = ifelse(
-        `Chartier_MODYMLPAResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_21 = ifelse(
-        `ExomeResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_22 = ifelse(
-        `GenomeResult` %in% c(NA),
-        0,
-        1
-      ),
-      tested_23 = ifelse(
-        `GenomeResult` %in% c(NA),
-        0,
-        1
-      )
-    ) %>%
-    mutate(
-      MODY_tests = tested_1 + tested_2 + tested_3 + tested_4 + tested_5 + tested_6 + tested_7 + tested_8 + tested_9 + tested_10 + tested_11 + tested_12 + tested_13 + tested_14 + tested_15 + tested_16 + tested_17 + tested_18 + tested_19 + tested_20 + tested_21 + tested_22 + tested_23,
+      MODY_tests = rowSums(!is.na(dataset_formatted_results) & dataset_formatted_results != "No Test"),
       MODY_tested = ifelse(
         MODY_tests > 0,
         TRUE,
@@ -1089,7 +978,24 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       )
     )
   
-  
+  # investigate if gene variable does not match the testing
+  if (investigate == "Rules") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, MODY_tested, Gene) %>%
+          mutate(
+            Gene_check = ifelse(
+              !is.na(Gene) & MODY_tested == FALSE,
+              "Gene but not tested?",
+              NA
+            )
+          ) %>%
+          select(MODYNo, Gene_check)
+        , by = c("MODYNo")
+      )
+        
+  }
   
   #:------------------------------------------------------------------------
   ####
