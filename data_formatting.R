@@ -26,6 +26,9 @@
 #' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
 #' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
 #' dataset <- read_excel("mody_35yrs_08_11_2023.xlsx", guess_max = 100000)
+#' library(readr)
+#' dataset.case_control <- read_csv("mmoct11.csv")
+#' 
 #' }
 #' 
 #' source("data_formatting.R")
@@ -1061,7 +1064,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    return(dataset_formatted)
+    return(dataset_formatted %>%
+             select(sex, bmi, agedx, hba1c, pardm, agerec, C, A, M)
+    )
     
   }
   
@@ -1072,7 +1077,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    return(dataset_formatted)
+    return(dataset_formatted %>%
+             select(sex, bmi, agedx, insoroha, hba1c, pardm, agerec, M)
+    )
     
   }
   
@@ -1084,7 +1091,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    return(dataset_formatted)
+    return(dataset_formatted %>%
+             select(Eth5, Eth10, sex, bmi, agedx, hba1c, pardm, agerec, C, A, M)
+    )
     
   }
   
@@ -1095,7 +1104,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    return(dataset_formatted)
+    return(dataset_formatted %>%
+             select(Eth5, Eth10, sex, bmi, agedx, insoroha, hba1c, pardm, agerec, M)
+    )
     
   }
   
