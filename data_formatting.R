@@ -33,9 +33,15 @@
 #' 
 #' source("data_formatting.R")
 #' 
-#' dataset_investigate <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
+#' dataset_investigate_rules <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
 #' 
-#' write.csv(dataset_investigate, "Investigate_rules_patients.csv", row.names = FALSE)
+#' library(xlsx)
+#' 
+#' write.xlsx(dataset_investigate_rules, "Investigate_rules_patients_new.xlsx", row.names = FALSE, showNA = FALSE)
+#' 
+#' dataset_investigate_missingness <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Missing")
+#' 
+#' write.xlsx(dataset_investigate_missingness, "Investigate_missingness_patients.xlsx", row.names = FALSE, showNA = FALSE)
 #' 
 #' # Pedro investigation:
 #' ## White C+/A- progressed to insulin <6 months
@@ -76,6 +82,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     if (!(proband %in% c("Proband", "All"))) {stop("'proband' must be defined: 'Proband' or 'All'.")}
   } else {
     type = "Type 1"
+    proband <- "Proband"
   }
   
   
@@ -244,7 +251,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   }
   
   ## Select the specific Proband choice made
-  if (investigate == FALSE) {
+  if (investigate == FALSE | investigate == "Missing") {
     if (proband == "Proband") {
       dataset_formatted <- dataset_formatted %>%
         filter(proband == "Proband")
@@ -396,6 +403,25 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     mutate(Eth10 = factor(Eth10),
            Eth5 = factor(Eth5))
   
+  ## Record whether Ethnicity is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, Eth5) %>%
+          mutate(
+            Ethnicity_check = ifelse(
+              is.na(Eth5),
+              "Ethnicity_missing",
+              NA
+            )
+          ) %>%
+          select(-Eth5),
+        by = ("MODYNo")
+      )
+  }
+  
+  
   #:----- Parent history
   dataset_formatted <- dataset_formatted %>%
     mutate(pardm = ifelse(
@@ -426,13 +452,71 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         )
       ))
   
+  
+  ## Record whether Parent history is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, pardm) %>%
+          mutate(
+            pardm_check = ifelse(
+              is.na(pardm),
+              "Parent history missing",
+              NA
+            )
+          ) %>%
+          select(-pardm),
+        by = ("MODYNo")
+      )
+  }
+  
+  
+  
+  
   #:----- Current age
   dataset_formatted <- dataset_formatted %>%
     mutate(agerec = as.numeric(`Age Collected`))
   
+  ## Record whether Current age is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, agerec) %>%
+          mutate(
+            agerec_check = ifelse(
+              is.na(agerec),
+              "Age Collected missing",
+              NA
+            )
+          ) %>%
+          select(-agerec),
+        by = ("MODYNo")
+      )
+  }
+  
   #:----- Age at diagnosis
   dataset_formatted <- dataset_formatted %>%
     mutate(agedx = as.numeric(`Age Diag`))
+  
+  ## Record whether Age at diagnosis is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, agedx) %>%
+          mutate(
+            agedx_check = ifelse(
+              is.na(agedx),
+              "Age at diagnosis missing",
+              NA
+            )
+          ) %>%
+          select(-agedx),
+        by = ("MODYNo")
+      )
+  }
   
   #:----- BMI
   
@@ -458,6 +542,27 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         by = c("MODYNo")
       )
   }
+  
+  
+  ## Record whether BMI is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, BMI) %>%
+          mutate(
+            BMI_check = ifelse(
+              is.na(BMI),
+              "BMI missing",
+              NA
+            )
+          ) %>%
+          select(-BMI),
+        by = ("MODYNo")
+      )
+  }
+  
+  
   
   dataset_formatted <- dataset_formatted %>%
     mutate(bmi = as.numeric(BMI),
@@ -499,7 +604,6 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         IFCCHBA1C
         )
       )
-  
   
   ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
   if (investigate == "Rules") {
@@ -582,20 +686,41 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       )
     )
     
+  
+  ## Record whether HbA1c is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, hba1c) %>%
+          mutate(
+            hba1c_check = ifelse(
+              is.na(hba1c),
+              "HbA1c missing",
+              NA
+            )
+          ) %>%
+          select(-hba1c),
+        by = ("MODYNo")
+      )
+  }
+  
+  
   #:----- Sex (male 1, female 2)
   dataset_formatted <- dataset_formatted %>%
     mutate(sex = ifelse(
       # If male
-      Sex == "Male",
+      Sex %in% c("Male", "male"),
       1,
       # If female
       ifelse(
-        Sex == "Female",
+        Sex %in% c("Female", "female"),
         2,
         # If unknown
         NA
       )
     ))
+  
   
   #:----- Treatment (insulin or tablets vs no insulin or tablets)
   
@@ -661,6 +786,24 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       )
     ))
   
+  
+  ## Record whether Ins or OHA is missing
+  if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, insoroha, progressed_to_insulin) %>%
+          mutate(
+            insoroha_check = ifelse(
+              is.na(insoroha) & progressed_to_insulin == "Type 2",
+              "Current treatment missing",
+              NA
+            )
+          ) %>%
+          select(-insoroha, -progressed_to_insulin),
+        by = ("MODYNo")
+      )
+  }
   
 
   #:----- C-peptide
@@ -1010,12 +1153,70 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #:----- Investigate Rules dataset
   
   if (investigate %in% c("Rules", "Missing")) {
-    # remove rows that are all NA (apart from MODYNo)
-    dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
     
-    # return dataset
-    return(dataset_investigate %>%
-             cbind(Checked = as.logical(NA)))
+    if (investigate == "Rules") {
+        
+      # remove rows that are all NA (apart from MODYNo)
+      dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
+      
+      # return dataset
+      return(dataset_investigate %>%
+               cbind(Checked = as.logical(NA)))
+      
+    } else {
+      
+      # check biomarkers
+      dataset_investigate <- dataset_investigate %>%
+        left_join(
+          dataset_formatted %>%
+            mutate(
+              informative_biomarkers = ifelse(
+                ## The right combination
+                C == 1 & A == 0,
+                "C+ AND A-",
+                ## The wrong combination
+                ifelse(
+                  is.na(C) & A == 1,
+                  "C- OR A+",
+                  ifelse(
+                    C == 0 & is.na(A),
+                    "C- OR A+",
+                    ifelse(
+                      C == 0 & A == 1,
+                      "C- OR A+",
+                      NA
+                      )
+                    )
+                  )
+                )
+              ) %>%
+            filter(is.na(informative_biomarkers) & progressed_to_insulin == "Type 1") %>%
+            mutate(
+              c_peptide_check = ifelse(
+                is.na(C),
+                "C-peptide test missing",
+                NA
+              ),
+              antibody_check = ifelse(
+                is.na(A),
+                "Antibody test missing",
+                NA
+              )
+            ) %>%
+            select(MODYNo, c_peptide_check, antibody_check),
+          by = c("MODYNo")
+        )
+      
+      # remove rows that are all NA (apart from MODYNo)
+      dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
+      
+      # return dataset
+      return(dataset_investigate %>%
+               cbind(Checked = as.logical(NA)))
+      
+      
+    }
+    
   }
   
 
