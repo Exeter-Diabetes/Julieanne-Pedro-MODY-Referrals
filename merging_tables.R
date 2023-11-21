@@ -1,9 +1,10 @@
 library(tidyverse)
+library(xlsx)
 
-Investigate_rules_patients_old <- read.csv("Investigate_rules_patients_old.csv") %>%
+Investigate_rules_patients_old <- read.xlsx("Investigate_rules_patients_old.xlsx", 1) %>%
   arrange(MODYNo)
 
-Investigate_rules_patients <- read.csv("Investigate_rules_patients.csv") %>%
+Investigate_rules_patients <- read.xlsx("Investigate_rules_patients_new.xlsx", 1) %>%
   arrange(MODYNo)
 
 
@@ -35,7 +36,7 @@ for (i in patient_id_both) {
       slice(i) %>%
       select(colnames(dataset_new), -Checked),
     Investigate_rules_patients %>%
-      slice(i) %>%
+      filter(MODYNo == Investigate_rules_patients_old$MODYNo[i]) %>%
       select(colnames(dataset_new), -Checked)
   ) == TRUE) {
     
@@ -53,7 +54,7 @@ for (i in patient_id_both) {
     dataset_new <- dataset_new %>%
       rbind(
         Investigate_rules_patients %>%
-          slice(i) %>%
+          filter(MODYNo == Investigate_rules_patients_old$MODYNo[i]) %>%
           select(colnames(dataset_new))
       )
     
@@ -94,4 +95,4 @@ dataset_new <- dataset_new %>%
   arrange(Checked)
 
 
-write.csv(dataset_new, "new_Investigate_rules_patients.csv", row.names = FALSE)
+write.xlsx(dataset_new, "Investigate_rules_patients_updated.xlsx", row.names = FALSE, showNA = FALSE)
