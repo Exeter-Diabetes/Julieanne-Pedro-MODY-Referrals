@@ -1,98 +1,122 @@
-library(tidyverse)
-library(xlsx)
 
-Investigate_rules_patients_old <- read.xlsx("Investigate_rules_patients_old.xlsx", 1) %>%
-  arrange(MODYNo)
-
-Investigate_rules_patients <- read.xlsx("Investigate_rules_patients_new.xlsx", 1) %>%
-  arrange(MODYNo)
+# library(xlsx)
+# 
+# Investigate_rules_patients_old <- read.xlsx("Investigate_rules_patients_old.xlsx", 1)
+# 
+# Investigate_rules_patients <- read.xlsx("Investigate_rules_patients_new.xlsx", 1)
 
 
-#:------- Patient ids
+merge_tables <- function(old_table, new_table) {
 
-# patients in old but not on new
-patient_id_old <- which(!(Investigate_rules_patients_old$MODYNo %in% Investigate_rules_patients$MODYNo))
+  ## load libraries
+  require(tidyverse)
 
-# patients in old and new
-patient_id_both <- which(Investigate_rules_patients_old$MODYNo %in% Investigate_rules_patients$MODYNo)
-
-# patients in new but not in old
-patient_id_new <- which(!(Investigate_rules_patients$MODYNo %in% Investigate_rules_patients_old$MODYNo))
-
-
-### Start creating the new dataset
-
-# patients in old
-dataset_new <- Investigate_rules_patients_old %>%
-  slice(patient_id_old) %>%
-  select(-Comment)
+  ## Make sure MODYNo is included in both tables
+  if (is.null(old_table$MODYNo)) {stop("'old_table' should include the MODYNo column")}
+  if (is.null(new_table$MODYNo)) {stop("'new_table' should include the MODYNo column")}
+  ## Make sure Comment is included in old_table
+  if (is.null(old_table$Comment)) {stop("'old_table' should include the Comment column")}
+  ## Make sure Checked is included in both tables
+  if (is.null(old_table$Checked)) {stop("'old_table' should include the Checked column")}
+  if (is.null(new_table$Checked)) {stop("'new_table' should include the Checked column")}
 
 
-for (i in patient_id_both) {
+  #:------------------------------------
+  ## collect patient id's
 
-  # check if patient has the same entries
-  if (identical(
-    Investigate_rules_patients_old %>%
+  # patients in old but not on new
+  patient_id_old <- which(!(old_table$MODYNo %in% new_table$MODYNo))
+
+  # patients in old and new
+  patient_id_both <- which(old_table$MODYNo %in% new_table$MODYNo)
+
+  # patients in new but not in old
+  patient_id_new <- which(!(new_table$MODYNo %in% old_table$MODYNo))
+
+
+
+  #:------------------------------------
+  ## Start building newer table with the combined information from both tables
+  
+  ## Take patients only on old table
+  dataset_new <- old_table %>%
+    slice(patient_id_old) %>%
+    select(-Comment)
+  
+  ## Take patients on both the old and new table
+  for (i in patient_id_both) {
+    
+    # check if patient has the same entries
+    if (identical(
+      
+      old_table %>%
       slice(i) %>%
       select(colnames(dataset_new), -Checked),
-    Investigate_rules_patients %>%
-      filter(MODYNo == Investigate_rules_patients_old$MODYNo[i]) %>%
+      
+      Investigate_rules_patients %>%
+      filter(MODYNo == old_table$MODYNo[i]) %>%
       select(colnames(dataset_new), -Checked)
-  ) == TRUE) {
-    
-    # if true, just add old one to the dataset
-    dataset_new <- dataset_new %>%
-      rbind(
-        Investigate_rules_patients_old %>%
-          slice(i) %>%
-          select(colnames(dataset_new))
-      )
-    
-  } else {
-    
-    # if false, just add new one to the dataset
-    dataset_new <- dataset_new %>%
-      rbind(
-        Investigate_rules_patients %>%
-          filter(MODYNo == Investigate_rules_patients_old$MODYNo[i]) %>%
-          select(colnames(dataset_new))
-      )
-    
+      
+    ) == TRUE) {
+      
+      # if true, just add old one to the dataset
+      dataset_new <- dataset_new %>%
+        rbind(
+          old_table %>%
+            slice(i) %>%
+            select(colnames(dataset_new))
+        )
+      
+    } else {
+      
+      # if false, just add new one to the dataset
+      dataset_new <- dataset_new %>%
+        rbind(
+          new_table %>%
+            filter(MODYNo == old_table$MODYNo[i]) %>%
+            select(colnames(dataset_new))
+        )
+      
+    }
   }
-}
 
-
-
-# patients in new
-dataset_new <- dataset_new %>%
-  rbind(
-    Investigate_rules_patients %>%
-      slice(patient_id_new) %>%
-      select(colnames(dataset_new))
-  )
-
-
-
-## Add additional variables and old comments
-# if there are new variables
-if ((ncol(Investigate_rules_patients_old)-2) != (ncol(Investigate_rules_patients)-1)) {
+  ## Take patients only on new table
+  dataset_new <- dataset_new %>%
+    rbind(
+      new_table %>%
+        slice(patient_id_new) %>%
+        select(colnames(dataset_new))
+    )
+  
+  
+  
+  ## Add additional variables
+  # if there are new variables
+  if ((ncol(old_table)-2) != (ncol(new_table)-1)) {
+    dataset_new <- dataset_new %>%
+      left_join(
+        new_table %>% 
+          select(-colnames(dataset_new), "MODYNo"),
+        by = c("MODYNo")
+      )
+  }
+  
+  # add old comments
   dataset_new <- dataset_new %>%
     left_join(
-      Investigate_rules_patients %>% 
-        select(-colnames(dataset_new), "MODYNo"),
+      old_table %>%
+        select("MODYNo", "Comment"),
       by = c("MODYNo")
-    )
+    ) %>%
+    select(c(colnames(new_table), "Comment")) %>%
+    arrange(Checked)
+  
+  
+  
+  
+  #:------------------------------------
+  ## Return final table
+  return(dataset_new)
+  
 }
 
-# add old comments
-dataset_new <- dataset_new %>%
-  left_join(
-    Investigate_rules_patients_old %>%
-      select("MODYNo", "Comment"),
-    by = c("MODYNo")
-  ) %>%
-  select(c(colnames(Investigate_rules_patients), "Comment")) %>%
-  arrange(Checked)
-
-
-write.xlsx(dataset_new, "Investigate_rules_patients_updated.xlsx", row.names = FALSE, showNA = FALSE)
