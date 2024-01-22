@@ -10,7 +10,9 @@
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
 #' @param gene_type 'Primary' or 'Secondary' variable specifying the genes being tested (other genes could be sensitivity analysis)
+#' @param gene_variable TRUE or FALSE flag on whether to include the Gene variable description
 #' @param proband 'Proband' or 'All' variable to help select the patients needed
+#' @param pardm_breakdown TRUE or FALSE flag on whether to include the pardm variable description
 #' @param investigate 'True' or 'False' variable which when TRUE, ignores the variables type, 
 #'            ethnicity and proband and outputs a table with rows for individual patients and 
 #'            columns for each of the variables that should be investigated in the records.
@@ -57,7 +59,7 @@
 #'
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", proband = NULL, investigate = FALSE) {
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
 
   ### Function checks
   ## Print out diagnosis
@@ -77,14 +79,17 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     if (!(ethnicity %in% c("White", "Non-White"))) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
     ## Ensure gene_type is chosen 
     if (!(gene_type %in% c("Primary", "Secondary"))) {stop("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
+    ## Ensure gene_variable is the right type
+    if (!(gene_variable %in% c(FALSE, TRUE))) {stop("'gene_variable' must be defined: 'TRUE' or 'FALSE'.")}
     ## Ensure proband is chosen correctly
     if (is.null(proband)) {stop("'proband' must be defined: 'Proband' or 'All'.")}
     if (!(proband %in% c("Proband", "All"))) {stop("'proband' must be defined: 'Proband' or 'All'.")}
+    ## Ensure pardm_breakdown is chosen correctly
+    if (!(pardm_breakdown %in% c(FALSE, TRUE))) {stop("'pardm_breakdown' must be defined: 'TRUE' or 'FALSE'.")}
   } else {
     type = "Type 1"
     proband <- "Proband"
   }
-  
   
   ### Libraries needed
   require(tidyverse)
@@ -1265,8 +1270,12 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
+    vars_select <- c("sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "C", "A", "M")
+    if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
+    if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
+    
     return(dataset_formatted %>%
-             select(sex, bmi, agedx, hba1c, pardm, agerec, C, A, M)
+             select(all_of(vars_select))
     )
     
   }
@@ -1278,8 +1287,12 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
+    vars_select <- c("sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
+    if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
+    if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
+    
     return(dataset_formatted %>%
-             select(sex, bmi, agedx, insoroha, hba1c, pardm, agerec, M)
+             select(all_of(vars_select))
     )
     
   }
@@ -1292,8 +1305,12 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
+    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "C", "A", "M")
+    if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
+    if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
+    
     return(dataset_formatted %>%
-             select(Eth5, Eth10, sex, bmi, agedx, hba1c, pardm, agerec, C, A, M)
+             select(all_of(vars_select))
     )
     
   }
@@ -1305,8 +1322,12 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
+    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
+    if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
+    if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
+    
     return(dataset_formatted %>%
-             select(Eth5, Eth10, sex, bmi, agedx, insoroha, hba1c, pardm, agerec, M)
+             select(all_of(vars_select))
     )
     
   }
