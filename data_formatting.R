@@ -125,6 +125,68 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   ###
   
+  #:----- Remove patients from other studies
+  
+  #####
+  # Just a check for whether there is a new type of reported status that we haven't seen yet
+  # This is being added because we will be rerunning this on newer versions of the dataset which may have new status
+  cohort_test <- dataset_formatted$Cohort %in% c("0308761081", "476 774 0525", "Atlantic DIP", "ATLANTIC DIP", "Australian", "Australlian", "BDD Study",
+                                                 "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguillar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
+                                                 "Flat Bush", "FLATBUSH", "Freemantle MODY study", "FREMANTLE STUDY", "GOOD study", "GOOD Study", "GOOD STUDY",
+                                                 "GRID", "ICLDC MODY study", "ICLDC MODY Study", "India MODY study", "Indian MODY study", "Insulinoma",
+                                                 "Ireland MODY", "Ireland MODY study", "ISPAD", "JUMP", "Kuwait MODY study", "Kuwait MODY Study",
+                                                 "MMY Study", "MODIR", "MODIR Study", "MODY India", "MODY X", "MY DIABETES", "My Diabetes study",
+                                                 "My Diabetes Study", "MY Diabetes Study", "MY DIABETES study", "MY DIABETES Study", "Oman",
+                                                 "RFX6 Helsinki Cohort 2016", "RXF6 Helsinki Cohort 2016", "St Vincent's MODY study", "ST VINCENTS STUDY",
+                                                 "Syndromic  diabetes Study", "SYNDROMIC DIABETE STUDY", "syndromic diabetes", "Syndromic diabetes",
+                                                 "Syndromic Diabetes", "Syndromic Diabetes Cohort", "Syndromic Diabetes Sttudy", "Syndromic diabetes study",
+                                                 "Syndromic diabetes Study", "Syndromic Diabetes study", "Syndromic Diabetes Study", "SYNDROMIC DIABETES STUDY",
+                                                 "UCPCR", "Ukraine MODY study", "Ukraine MODY Study", "Ukraine MODY Study & Syndromic Diabetes Study",
+                                                 "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", NA)
+  
+  # If there are other status, stop the function so that it can be fixed
+  if (sum(cohort_test) != nrow(dataset_formatted)) {
+    print("There is new Cohort which were not considered:")
+    print(unique(dataset_formatted$Cohort[!cohort_test]))
+    stop()
+  }
+  ####
+  # Set 'Keep' or 'Remove' to those with the status we want/don't, respectively
+  dataset_formatted <- dataset_formatted %>%
+    mutate(Cohort_interim = ifelse(!(Cohort %in% c("0308761081", "476 774 0525", "Atlantic DIP", "ATLANTIC DIP", "Australian", "Australlian", "BDD Study",
+                                                   "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguillar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
+                                                   "Flat Bush", "FLATBUSH", "Freemantle MODY study", "FREMANTLE STUDY", "GOOD study", "GOOD Study", "GOOD STUDY",
+                                                   "GRID", "ICLDC MODY study", "ICLDC MODY Study", "India MODY study", "Indian MODY study", "Insulinoma",
+                                                   "Ireland MODY", "Ireland MODY study", "ISPAD", "JUMP", "Kuwait MODY study", "Kuwait MODY Study",
+                                                   "MMY Study", "MODIR", "MODIR Study", "MODY India", "MODY X", "MY DIABETES", "My Diabetes study",
+                                                   "My Diabetes Study", "MY Diabetes Study", "MY DIABETES study", "MY DIABETES Study", "Oman",
+                                                   "RFX6 Helsinki Cohort 2016", "RXF6 Helsinki Cohort 2016", "St Vincent's MODY study", "ST VINCENTS STUDY",
+                                                   "Syndromic  diabetes Study", "SYNDROMIC DIABETE STUDY", "syndromic diabetes", "Syndromic diabetes",
+                                                   "Syndromic Diabetes", "Syndromic Diabetes Cohort", "Syndromic Diabetes Sttudy", "Syndromic diabetes study",
+                                                   "Syndromic diabetes Study", "Syndromic Diabetes study", "Syndromic Diabetes Study", "SYNDROMIC DIABETES STUDY",
+                                                   "UCPCR", "Ukraine MODY study", "Ukraine MODY Study", "Ukraine MODY Study & Syndromic Diabetes Study",
+                                                   "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", NA)), "Remove", "Keep"))
+  
+  
+  if (diagnosis == TRUE) {
+    print("###############################")
+    print("### Exclude specific Cohorts ###")
+    print(dataset_formatted %>% filter(Cohort_interim == "Remove") %>% select(Cohort) %>% unique() %>% unlist() %>% as.vector())
+    print("###############################")
+    print(table(dataset_formatted$Cohort, dataset_formatted$Cohort_interim, useNA = "ifany"))
+    print("###############################")
+    print(table(dataset_formatted$Cohort_interim))
+  }
+  
+  # Remove the rows not needed
+  dataset_formatted <- dataset_formatted %>%
+    filter(Cohort_interim == "Keep") %>%
+    select(-Cohort_interim)
+  
+  
+  
+  ###
+  
   #:----- Age range
   
   ## Nothing needs to be done here as the dataset is already in the range needed
