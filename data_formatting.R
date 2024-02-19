@@ -165,7 +165,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                    "Syndromic Diabetes", "Syndromic Diabetes Cohort", "Syndromic Diabetes Sttudy", "Syndromic diabetes study",
                                                    "Syndromic diabetes Study", "Syndromic Diabetes study", "Syndromic Diabetes Study", "SYNDROMIC DIABETES STUDY",
                                                    "UCPCR", "Ukraine MODY study", "Ukraine MODY Study", "Ukraine MODY Study & Syndromic Diabetes Study",
-                                                   "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", NA)), "Remove", "Keep"))
+                                                   "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study")), "Remove", "Keep"))
   
   
   if (diagnosis == TRUE) {
