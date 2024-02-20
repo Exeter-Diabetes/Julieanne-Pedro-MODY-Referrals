@@ -131,7 +131,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   # Just a check for whether there is a new type of reported status that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new status
   cohort_test <- dataset_formatted$Cohort %in% c("0308761081", "476 774 0525", "Atlantic DIP", "ATLANTIC DIP", "Australian", "Australlian", "BDD Study",
-                                                 "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguillar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
+                                                 "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguilar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
                                                  "Flat Bush", "FLATBUSH", "Freemantle MODY study", "FREMANTLE STUDY", "GOOD study", "GOOD Study", "GOOD STUDY",
                                                  "GRID", "ICLDC MODY study", "ICLDC MODY Study", "India MODY study", "Indian MODY study", "Insulinoma",
                                                  "Ireland MODY", "Ireland MODY study", "ISPAD", "JUMP", "Kuwait MODY study", "Kuwait MODY Study",
@@ -142,7 +142,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                  "Syndromic Diabetes", "Syndromic Diabetes Cohort", "Syndromic Diabetes Sttudy", "Syndromic diabetes study",
                                                  "Syndromic diabetes Study", "Syndromic Diabetes study", "Syndromic Diabetes Study", "SYNDROMIC DIABETES STUDY",
                                                  "UCPCR", "Ukraine MODY study", "Ukraine MODY Study", "Ukraine MODY Study & Syndromic Diabetes Study",
-                                                 "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", NA)
+                                                 "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", "Spanish T1DM Ab Neg", "SEARCH", "Search", NA)
   
   # If there are other status, stop the function so that it can be fixed
   if (sum(cohort_test) != nrow(dataset_formatted)) {
@@ -154,7 +154,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   # Set 'Keep' or 'Remove' to those with the status we want/don't, respectively
   dataset_formatted <- dataset_formatted %>%
     mutate(Cohort_interim = ifelse(!(Cohort %in% c("0308761081", "476 774 0525", "Atlantic DIP", "ATLANTIC DIP", "Australian", "Australlian", "BDD Study",
-                                                   "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguillar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
+                                                   "C-Peptide Study", "CZECH", "Diabetes and LD study", "Dr Aguilar-Bryan", "Dundee lab Cohort", "Dundee Lab Cohort",
                                                    "Flat Bush", "FLATBUSH", "Freemantle MODY study", "FREMANTLE STUDY", "GOOD study", "GOOD Study", "GOOD STUDY",
                                                    "GRID", "ICLDC MODY study", "ICLDC MODY Study", "India MODY study", "Indian MODY study", "Insulinoma",
                                                    "Ireland MODY", "Ireland MODY study", "ISPAD", "JUMP", "Kuwait MODY study", "Kuwait MODY Study",
@@ -165,7 +165,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                    "Syndromic Diabetes", "Syndromic Diabetes Cohort", "Syndromic Diabetes Sttudy", "Syndromic diabetes study",
                                                    "Syndromic diabetes Study", "Syndromic Diabetes study", "Syndromic Diabetes Study", "SYNDROMIC DIABETES STUDY",
                                                    "UCPCR", "Ukraine MODY study", "Ukraine MODY Study", "Ukraine MODY Study & Syndromic Diabetes Study",
-                                                   "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study")), "Remove", "Keep"))
+                                                   "Ukrainian MODY study", "UNITED", "UNITED study", "UNITED Study", "Spanish T1DM Ab Neg", "SEARCH", "Search")), "Remove", "Keep"))
   
   
   if (diagnosis == TRUE) {
