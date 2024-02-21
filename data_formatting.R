@@ -60,7 +60,7 @@
 #'
 #' @export
 formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
-
+  
   ### Function checks
   ## Print out diagnosis
   if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
@@ -217,7 +217,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                  "Ketosis prone diabetes", "Ketosis Prone diabetes", "Lipodystrophy", "MDP Syndrome", "nephrocalcinosis & diabetes", 
                                                  "Not Diabetic", "PNDM", "Raised HbA1c", "Raised HbA1c >5.7", "Relapsing/Remitting Diabetes", "Remitting Diabetes", 
                                                  "Renal Cysts & Diabetes", "Renal Cysts no Diabetes", "Renal Developmental abnormality", "Renal Developmental Abnormality", 
-                                                 "Renal X", "TNDM", "TRMA", "Unaffected", "Unknown", "Wolfram Syndrome", NA)
+                                                 "Renal X","Severe Insulin Resistance", "TNDM", "TRMA", "T1GRS only request", "Unaffected", "Unknown", "Wolfram Syndrome", NA)
   
   # If there are other status, stop the function so that it can be fixed
   if (sum(status_test) != nrow(dataset_formatted)) {
@@ -332,13 +332,13 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   #####
   # Just a check for whether there is a new type of reported initial treatments that we haven't seen yet
   # This is being added because we will be rerunning this on newer versions of the dataset which may have new initial treatments
- initial_treatment_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", "Gliclazide", "glucose", 
-                                                                     "Glucose", "Humulin", "ins during preg", "Ins during preg", "Ins in preg", "insulin", "Insulin", 
-                                                                     "INSULIN", "insulin during preg", "Insulin during pregnancy", "insulin pump", "Keto diet", "MDI", 
-                                                                     "metformin", "Metformin", "Metformin 500mg + diet", "Nifedipine", "non specified", "NONE", 
-                                                                     "not known", "not Known", "Not known", "Not Known", "not kown", "not provided", "Not stated",
-                                                                     "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", "Unsure", NA,
-                                                                     "Mixtard BD", "MDF", "SCII")
+  initial_treatment_test <- dataset_formatted$`Initial Trtmnt` %in% c("?", "Diazoxide", "diet", "Diet", "DIET", "DIET & INS", "DIET & OHA", "Gliclazide", "glucose", 
+                                                                      "Glucose", "Humulin", "ins during preg", "Ins during preg", "Ins in preg", "insulin", "Insulin", 
+                                                                      "INSULIN", "insulin during preg", "Insulin during pregnancy", "insulin pump", "Keto diet", "MDI",
+                                                                      "metformin", "Metformin", "Metformin 500mg + diet", "Nifedipine", "non specified", "NONE", 
+                                                                      "not known", "not Known", "Not known", "Not Known", "not kown", "not provided", "Not stated",
+                                                                      "Not Stated", "Novonorm", "oha", "OHA", "OHA & INS", "unknown", "Unknown", "Unsure", NA,
+                                                                      "Mixtard BD", "MDF", "SCII")
   
   # If there are other initial treatments, stop the function so that it can be fixed
   if (sum(initial_treatment_test) != nrow(dataset_formatted)) {
@@ -500,24 +500,24 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         (MotherDM == "No" & FatherDM == "No"),
         0,
         NA
-        )
-      ),
-      # this variable is checking whether the parent history is both parents or not 
-      #  (the mody calculator was made for one of the parents having diabetes, not both)
-      pardm_breakdown = ifelse(
-        MotherDM == "Yes" & FatherDM == "Yes",
-        2,
+      )
+    ),
+    # this variable is checking whether the parent history is both parents or not 
+    #  (the mody calculator was made for one of the parents having diabetes, not both)
+    pardm_breakdown = ifelse(
+      MotherDM == "Yes" & FatherDM == "Yes",
+      2,
+      ifelse(
+        (MotherDM == "Yes" & FatherDM == "No") | (MotherDM == "No" & FatherDM == "Yes"),
+        1,
         ifelse(
-          (MotherDM == "Yes" & FatherDM == "No") | (MotherDM == "No" & FatherDM == "Yes"),
-          1,
-          ifelse(
-            # If parents do not have history: combinations: N/N
-            (MotherDM == "No" & FatherDM == "No"),
-            0,
-            NA
-          )
+          # If parents do not have history: combinations: N/N
+          (MotherDM == "No" & FatherDM == "No"),
+          0,
+          NA
         )
-      ))
+      )
+    ))
   
   
   ## Record whether Parent history is missing
@@ -659,18 +659,18 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         HbA1c > 20,
         (HbA1c/10.929) + 2.15,
         HbA1c
-        ),
+      ),
       Hba1c2 = ifelse(
         Hba1c2 > 20,
         (Hba1c2/10.929) + 2.15,
         Hba1c2
-        ),
+      ),
       IFCCHBA1C = ifelse(
         IFCCHBA1C > 20,
         (IFCCHBA1C/10.929) + 2.15,
         IFCCHBA1C
-        )
       )
+    )
   
   ### Need to choosen between HbA1c, Hba1c2, IFCCHBA1C (make sure they are all %)
   if (investigate == "Rules") {
@@ -752,7 +752,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         )
       )
     )
-    
+  
   
   ## Record whether HbA1c is missing
   if (investigate == "Missing") {
@@ -807,7 +807,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   # If there are other gene, stop the function so that it can be fixed
   if (sum(insoroha_test) != nrow(dataset_formatted)) {
-    print("There is new gene which were not considered:")
+    print("There is new current treatments which were not considered:")
     print(unique(dataset_formatted$`Current Trtmnt`[!insoroha_test]))
     stop()
   }
@@ -872,7 +872,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       )
   }
   
-
+  
   #:----- C-peptide
   
   ## Only do this for Type 1
@@ -918,7 +918,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                   NA
                 )
               )
-              ) %>%
+            ) %>%
             select(-`UCPCR Value`, -`C-peptide units`, -`C-Peptide`),
           by = c("MODYNo")
         )
@@ -934,7 +934,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
             `UCPCR Value` > 0.2,
             1,
             0
-            ),
+          ),
           ## if C-peptide isn't missing
           ifelse(
             !is.na(`C-Peptide`),
@@ -942,11 +942,11 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
               `C-Peptide` > 200,
               1,
               0
-              ),
+            ),
             NA
-            )
           )
         )
+      )
     
     
   }
@@ -1135,10 +1135,10 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                 is.na(GAD_final) & is.na(ZnT8_final) & is.na(IA2_final),
                 0,
                 NA
-                )
               )
             )
           )
+        )
       )
     # add variable with how many positives you had
     dataset_formatted$abcat = rowSums(dataset_formatted %>% select(GAD_final, ZnT8_final, IA2_final), na.rm = TRUE)
@@ -1207,7 +1207,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
           select(MODYNo, Gene_check)
         , by = c("MODYNo")
       )
-        
+    
   }
   
   #:------------------------------------------------------------------------
@@ -1222,7 +1222,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   if (investigate %in% c("Rules", "Missing")) {
     
     if (investigate == "Rules") {
-        
+      
       # remove rows that are all NA (apart from MODYNo)
       dataset_investigate <- dataset_investigate[which(rowSums(is.na(dataset_investigate[,2:ncol(dataset_investigate)])) != (ncol(dataset_investigate)-1)),]
       
@@ -1252,11 +1252,11 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                       C == 0 & A == 1,
                       "C- OR A+",
                       NA
-                      )
                     )
                   )
                 )
-              ) %>%
+              )
+            ) %>%
             filter(is.na(informative_biomarkers) & progressed_to_insulin == "Type 1") %>%
             mutate(
               c_peptide_check = ifelse(
@@ -1286,7 +1286,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     
   }
   
-
+  
   
   #:----- Analysis datasets
   
@@ -1303,16 +1303,16 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         ## The wrong combination
         ifelse(
           is.na(C) & A == 1,
-         "C- OR A+",
-         ifelse(
-           C == 0 & is.na(A),
-           "C- OR A+",
-           ifelse(
-             C == 0 & A == 1,
-             "C- OR A+",
-             NA
-           )
-         )
+          "C- OR A+",
+          ifelse(
+            C == 0 & is.na(A),
+            "C- OR A+",
+            ifelse(
+              C == 0 & A == 1,
+              "C- OR A+",
+              NA
+            )
+          )
         )
       ))
     
