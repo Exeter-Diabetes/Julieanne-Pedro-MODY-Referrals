@@ -27,7 +27,7 @@
 #' library(readxl)
 #' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
 #' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
-#' dataset <- read_excel("mody_35yrs_08_11_2023.xlsx", guess_max = 100000)
+#' dataset <- read_excel("mody_35yrs_08_02_2024.xlsx", guess_max = 100000)
 #' library(readr)
 #' dataset.case_control <- read_csv("mmoct11.csv")
 #' 
@@ -803,7 +803,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
                                                              "not provided", "not stated", "Not stated", "Not Stated", "Novonorm", 
                                                              "Novorapid", "Octreotide", "oha", "OHA", "OHA & injectable GLP1", 
                                                              "OHA & INS", "OHA and diet", "Oral", "SCII, DIET", "Semaglutide", "unknown", 
-                                                             "Unknown", "Unsure of text on form", NA)
+                                                             "Unknown", "Unsure of text on form", "Gliclazide", "Not known", NA)
   
   # If there are other gene, stop the function so that it can be fixed
   if (sum(insoroha_test) != nrow(dataset_formatted)) {
@@ -839,7 +839,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       # 1 (on insulin or oha)
       `Current Trtmnt` %in% c("CSII", "INS", "insulin", "Insulin", "INSULIN", "insulin pump", "Insulin pump", 
                               "Insulin Pump", "Lantus", "Lantus & Humalog", "Levemir", "Loop, DIET", 
-                              "metformin", "Metformin", "METFORMIN", "Nifedipine + Sulphonylurea",
+                              "metformin", "Metformin", "METFORMIN", "Nifedipine + Sulphonylurea", "Gliclazide",
                               "Novonorm", "Novorapid", "Octreotide", "oha", "OHA", "OHA & injectable GLP1",
                               "OHA & INS", "OHA and diet", "Oral", "SCII, DIET", "Semaglutide"),
       1,
