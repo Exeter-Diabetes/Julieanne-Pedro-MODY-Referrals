@@ -9,6 +9,7 @@
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
+#' @param biomarkers 'C+/A-' or 'All' variable to decide if all Type 1 individuals should be included
 #' @param gene_type 'Primary' or 'Secondary' variable specifying the genes being tested (other genes could be sensitivity analysis)
 #' @param gene_variable TRUE or FALSE flag on whether to include the Gene variable description
 #' @param proband 'Proband' or 'All' variable to help select the patients needed
@@ -48,6 +49,8 @@
 #' # Pedro investigation:
 #' ## White C+/A- progressed to insulin <6 months
 #' dataset_white_ca_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", proband = "Proband")
+#' ## White All progressed to insulin <6 months
+#' dataset_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", biomarkers = "All", proband = "Proband")
 #' ## White did not progress to insulin <6 months
 #' dataset_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 2", ethnicity = "White", proband = "Proband")
 #'
@@ -59,7 +62,7 @@
 #'
 #'
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
   
   ### Function checks
   ## Print out diagnosis
@@ -77,6 +80,13 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     ## Ensure ethnicity is chosen 
     if (is.null(ethnicity)) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
     if (!(ethnicity %in% c("White", "Non-White"))) {stop("'ethnicity' must be defined: 'White' or 'Non-White'.")}
+    ## Ensure biomarkers are given for type 1
+    if (type == "Type 1") {
+      if (is.null(biomarkers)) {stop("'biomarkers' must be given when type = 'Type 1'.")}
+    }
+    if (type == "Type 1") {
+      if (!(biomarkers %in% c("C+/A-", "All"))) {stop("'biomarkers' must be defined: 'C+/A-' or 'All'.")}
+    }
     ## Ensure gene_type is chosen 
     if (!(gene_type %in% c("Primary", "Secondary"))) {stop("'gene_type' must be defined: 'Primary' or 'Secondary'.")}
     ## Ensure gene_variable is the right type
@@ -1323,10 +1333,17 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     }
     
     ## Select the right biomarkers
-    dataset_formatted <- dataset_formatted %>%
-      filter(!is.na(informative_biomarkers)) %>%
-      filter(informative_biomarkers == "C+ AND A-") %>%
-      select(-informative_biomarkers) 
+    if (biomarkers == "C+/A-") {
+      dataset_formatted <- dataset_formatted %>%
+        filter(!is.na(informative_biomarkers)) %>%
+        filter(informative_biomarkers == "C+ AND A-") %>%
+        select(-informative_biomarkers) 
+    } else {
+      dataset_formatted <- dataset_formatted %>%
+        filter(!is.na(informative_biomarkers)) %>%
+        select(-informative_biomarkers) 
+    }
+    
     
     if (diagnosis == TRUE) {
       print(paste0("Patients n = ", nrow(dataset_formatted)))
