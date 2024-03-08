@@ -1349,7 +1349,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "C", "A", "M")
+    vars_select <- c("sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
@@ -1384,7 +1384,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "C", "A", "M")
+    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
