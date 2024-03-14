@@ -5,7 +5,9 @@
 #' @param dataset original unformatted referral dataset
 #' @param dataset.case_control case-control dataset which patients that need to be removed
 #' @param ethnicity_groups table containing the sorted ethnicities into all groups
-#' @param ethnicity_labels table containing the conversion labels for each of the ethnicity groups
+#' @param ethnicity_groups_genetics table containing the sorted genetic ethnicities into all groups
+#' @param ethnicity_labels_stated table containing the conversion labels for each of the ethnicity groups stated
+#' @param ethnicity_labels_genetics table containing the conversion labels for each of the ethnicity groups genetics
 #' @param diagnosis TRUE or FALSE flag on whether excluded patient numbers should be printed
 #' @param type 'Type 1' or 'Type 2' variable to help define the dataset
 #' @param ethnicity 'White' or 'Non-White' variable to help define the ethnicity
@@ -26,44 +28,49 @@
 #' 
 #' ## load the excel tables like so (so that it understands NA properly):
 #' library(readxl)
-#' ethnicity_groups <- read_excel("ethnicity_groups.xlsx", na = "null")
-#' ethnicity_labels <- read_excel("ethnicity_labels.xlsx", na = "null")
+#' ethnicity_groups <- read_excel("ethnicity_groups_ngs.xlsx", na = "null")
+#' ethnicity_groups_genetics <- read_excel("ancestry_ngs_kp.xlsx", na = "null")
+#' ethnicity_labels_stated <- read_excel("ethnicity_labels_stated.xlsx", na = "null")
+#' ethnicity_labels_genetics <- read_excel("ethnicity_labels_genetics.xlsx", na = "null")
+#' 
+#' 
 #' dataset <- read_excel("mody_35yrs_08_02_2024.xlsx", guess_max = 100000)
 #' library(readr)
 #' dataset.case_control <- read_csv("mmoct11.csv")
-#' 
-#' }
-#' 
+#'  
 #' source("data_formatting.R")
 #' 
-#' dataset_investigate_rules <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Rules")
+#' dataset_investigate_rules <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, investigate = "Rules")
 #' 
 #' library(xlsx)
 #' 
 #' write.xlsx(dataset_investigate_rules, "Investigate_rules_patients_new.xlsx", row.names = FALSE, showNA = FALSE)
 #' 
-#' dataset_investigate_missingness <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, investigate = "Missing")
+#' dataset_investigate_missingness <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, investigate = "Missing")
 #' 
-#' write.xlsx(dataset_investigate_missingness, "Investigate_missingness_patients.xlsx", row.names = FALSE, showNA = FALSE)
+#' write.xlsx(dataset_investigate_missingness, "Investigate_missingness_patients_new.xlsx", row.names = FALSE, showNA = FALSE)
 #' 
 #' # Pedro investigation:
 #' ## White C+/A- progressed to insulin <6 months
-#' dataset_white_ca_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", proband = "Proband")
+#' dataset_white_ca_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = TRUE, type = "Type 1", ethnicity = "White", proband = "Proband")
 #' ## White All progressed to insulin <6 months
-#' dataset_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "White", biomarkers = "All", proband = "Proband")
+#' dataset_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = TRUE, type = "Type 1", ethnicity = "White", biomarkers = "All", proband = "Proband")
 #' ## White did not progress to insulin <6 months
-#' dataset_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 2", ethnicity = "White", proband = "Proband")
+#' dataset_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = TRUE, type = "Type 2", ethnicity = "White", proband = "Proband")
 #'
 #' # Julieanne investigation:
 #' ## Non-White progressed to insulin < 6 months
-#' dataset_non_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 1", ethnicity = "Non-White", proband = "Proband")
+#' dataset_non_white_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = TRUE, type = "Type 1", ethnicity = "Non-White", proband = "Proband")
 #' ## Non-White did not progress to insulin <6 months
-#' dataset_non_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = TRUE, type = "Type 2", ethnicity = "Non-White", proband = "Proband")
+#' dataset_non_white_not_progressed <- formatting(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = TRUE, type = "Type 2", ethnicity = "Non-White", proband = "Proband")
 #'
 #'
+#' }
+#' 
+#' 
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_labels, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
-  
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
+
   ### Function checks
   ## Print out diagnosis
   if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
@@ -391,9 +398,17 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         filter(progressed_to_insulin == "Type 2") %>%
         select(-progressed_to_insulin)
     }
+  } else if (investigate == "Missing") {
+    dataset_investigate <- dataset_investigate %>%
+      left_join(
+        dataset_formatted %>%
+          select(MODYNo, progressed_to_insulin) %>%
+          rename("Model" = "progressed_to_insulin"),
+        by = c("MODYNo")
+      ) %>%
+      drop_na()
+    
   }
-  
-  
   
   #:----- Ethnicity specification
   
@@ -415,18 +430,35 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   dataset_formatted <- dataset_formatted %>%
     mutate(EthnicOrigin = ifelse(is.na(EthnicOrigin), "NA", EthnicOrigin),
            Eth10 = "undefined",
-           Eth5 = "undefined")
+           Eth5 = "undefined",
+           Eth_check_gen = NA)
   
   for (i in 1:nrow(dataset_formatted)) {
     
     # ethnicity entry
     value_eth <- dataset_formatted$EthnicOrigin[i]
     
-    # check what eth10 it is
-    dataset_formatted$Eth10[i] <- as.character(ethnicity_labels[which(ethnicity_labels[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),2])
+    # Check whether the value should be checked (Eth: missing/other/...)
+    if (!is.na(ethnicity_groups[which(ethnicity_groups[,1] == value_eth),4])) {
+      
+      # check what eth10 it is
+      dataset_formatted$Eth10[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),2])
+      
+      # check what eth5 it is
+      dataset_formatted$Eth5[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),4])
+      
+      dataset_formatted$Eth_check_gen[i] <- "Check"
+      
+    } else {
+      
+      # check what eth10 it is
+      dataset_formatted$Eth10[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),2])
+      
+      # check what eth5 it is
+      dataset_formatted$Eth5[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),4])
+      
+    }
     
-    # check what eth5 it is
-    dataset_formatted$Eth5[i] <- as.character(ethnicity_labels[which(ethnicity_labels[,1] == as.numeric(ethnicity_groups[which(ethnicity_groups[,1] == value_eth), 2])),4])
     
   }
   
@@ -436,6 +468,51 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
     print(table(dataset_formatted$Eth10 ,dataset_formatted$Eth5, useNA = "ifany"))
   }
   
+  interim <- dataset_formatted %>%
+    select(MODYNo, LabNo, Eth_check_gen) %>%
+    drop_na() %>%
+    select(-Eth_check_gen) %>%
+    left_join(
+      ethnicity_groups_genetics %>%
+        rename("LabNo" = "ngsidkp") %>%
+        mutate(LabNo = gsub("^.*?_","",LabNo)) %>%
+        distinct(LabNo, .keep_all = TRUE),
+      by = c("LabNo")
+    ) %>%
+    mutate(
+      ancestry = ifelse(is.na(ancestry), "Not Stated/NA", ancestry),
+      EthGen5 = NA,
+      EthGen10 = NA
+    )
+  
+  for (i in 1:nrow(interim)) {
+    
+    # ethnicity entry
+    value_eth <- interim$ancestry[i]
+    
+    interim$EthGen5[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_labels_genetics[which(ethnicity_labels_genetics[,1] == value_eth),3])),4])
+    
+    interim$EthGen10[i] <- as.character(ethnicity_labels_stated[which(ethnicity_labels_stated[,1] == as.numeric(ethnicity_labels_genetics[which(ethnicity_labels_genetics[,1] == value_eth),3])),2])
+    
+  }
+  
+  
+  dataset_formatted <- dataset_formatted %>%
+    left_join(
+      interim %>%
+        select(-LabNo),
+      by = c("MODYNo")
+    ) %>%
+    mutate(
+      EthGen10 = ifelse(is.na(EthGen10), "Not Stated/NA", EthGen10),
+      EthGen5 = ifelse(is.na(EthGen5), "Not Stated/NA", EthGen5),
+      ancestry = ifelse(is.na(ancestry), "Not Stated/NA", ancestry)
+    ) %>%
+    mutate(
+      Eth5_final = ifelse(Eth5 == "Not Stated/NA", EthGen5, Eth5),
+      Eth10_final = ifelse(Eth10 == "Not Stated/NA", EthGen10, Eth10)
+    )
+  
   
   ## Select the specific Ethnicity and discard the variable created to define them
   if (investigate == FALSE) {
@@ -443,26 +520,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       
       if (diagnosis == TRUE) {
         dataset_formatted %>%
-          mutate(Ethnicity_exclude = ifelse(Eth5 == "White", "Keep", "Exclude")) %>%
+          mutate(Ethnicity_exclude = ifelse(Eth5_final == "White", "Keep", "Exclude")) %>%
           select(Ethnicity_exclude) %>%
           table(useNA = "ifany") %>%
           print()
       }
       
       dataset_formatted <- dataset_formatted %>%
-        filter(Eth5 == "White")
+        filter(Eth5_final == "White")
     } else if(ethnicity == "Non-White") {
       
       if (diagnosis == TRUE) {
         dataset_formatted %>%
-          mutate(Ethnicity_exclude = ifelse(Eth5 != "White", "Keep", "Exclude")) %>%
+          mutate(Ethnicity_exclude = ifelse(Eth5_final != "White", "Keep", "Exclude")) %>%
           select(Ethnicity_exclude) %>%
           table(useNA = "ifany") %>%
           print()
       }
       
       dataset_formatted <- dataset_formatted %>%
-        filter(Eth5 != "White")
+        filter(Eth5_final != "White")
     }
   }
   
@@ -477,24 +554,25 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
   
   #:----- Ethnicity
   dataset_formatted <- dataset_formatted %>%
-    mutate(Eth10 = factor(Eth10),
-           Eth5 = factor(Eth5))
+    mutate(Eth10 = factor(Eth10_final),
+           Eth5 = factor(Eth5_final))
   
   ## Record whether Ethnicity is missing
   if (investigate == "Missing") {
     dataset_investigate <- dataset_investigate %>%
       left_join(
         dataset_formatted %>%
-          select(MODYNo, Eth5) %>%
+          select(MODYNo, Eth10) %>%
           mutate(
             Ethnicity_check = ifelse(
-              is.na(Eth5),
+              is.na(Eth10),
               "Ethnicity_missing",
               NA
-            )
+            ),
+            Ethnicity = Eth10
           ) %>%
-          select(-Eth5),
-        by = ("MODYNo")
+          select(-Eth10),
+        by = c("MODYNo")
       )
   }
   
@@ -778,7 +856,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
             )
           ) %>%
           select(-hba1c),
-        by = ("MODYNo")
+        by = c("MODYNo")
       )
   }
   
@@ -878,7 +956,7 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
             )
           ) %>%
           select(-insoroha, -progressed_to_insulin),
-        by = ("MODYNo")
+        by = c("MODYNo")
       )
   }
   
