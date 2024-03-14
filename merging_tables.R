@@ -32,7 +32,10 @@ merge_tables <- function(old_table, new_table) {
 
   #:------------------------------------
   ## collect patient id's
-
+  
+  # patients in old but not on new
+  patient_id_old <- which(!(old_table$MODYNo %in% new_table$MODYNo))
+  
   # patients in old and new
   patient_id_both <- which(old_table$MODYNo %in% new_table$MODYNo)
 
@@ -46,7 +49,7 @@ merge_tables <- function(old_table, new_table) {
   
   ## Take patients only on old table
   dataset_new <- old_table %>%
-    filter(MODYNo == "testest") %>%
+    slice(patient_id_old) %>%
     select(-Comment)
   
   ## Take patients on both the old and new table
