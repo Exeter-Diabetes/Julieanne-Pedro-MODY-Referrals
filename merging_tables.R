@@ -1,13 +1,22 @@
 
-# library(xlsx)
-# 
-# Investigate_rules_patients_old <- read.xlsx("Investigate_rules_patients_old.xlsx", 1)
-# 
-# Investigate_rules_patients <- read.xlsx("Investigate_rules_patients_new.xlsx", 1)
+library(xlsx)
+library(tidyverse)
+
+Investigate_rules_patients_old <- read.xlsx("Investigate_missingness_patients_old.xlsx", 1) %>%
+  distinct(MODYNo, .keep_all = TRUE)
+
+Investigate_rules_patients <- read.xlsx("Investigate_missingness_patients_new.xlsx", 1) %>%
+  distinct(MODYNo, .keep_all = TRUE)
+
+
+new_table <- merge_tables(Investigate_rules_patients_old, Investigate_rules_patients)
+
+
+write.xlsx(new_table, "Investigate_rules_patients_updated.xlsx", row.names = FALSE, showNA = FALSE)
 
 
 merge_tables <- function(old_table, new_table) {
-
+  
   ## load libraries
   require(tidyverse)
 
@@ -24,9 +33,6 @@ merge_tables <- function(old_table, new_table) {
   #:------------------------------------
   ## collect patient id's
 
-  # patients in old but not on new
-  patient_id_old <- which(!(old_table$MODYNo %in% new_table$MODYNo))
-
   # patients in old and new
   patient_id_both <- which(old_table$MODYNo %in% new_table$MODYNo)
 
@@ -40,7 +46,7 @@ merge_tables <- function(old_table, new_table) {
   
   ## Take patients only on old table
   dataset_new <- old_table %>%
-    slice(patient_id_old) %>%
+    filter(MODYNo == "testest") %>%
     select(-Comment)
   
   ## Take patients on both the old and new table
@@ -113,10 +119,28 @@ merge_tables <- function(old_table, new_table) {
   
   
   
+  dataset_final <- dataset_new[rowSums(is.na(dataset_new[,c(3,5,6,7,8,9,10,11,12)])) == 9,] %>%
+    drop_na("Comment") %>%
+    rbind(
+      dataset_new[rowSums(is.na(dataset_new[,c(3,5,6,7,8,9,10,11,12)])) < 9,]
+    )
+  
   
   #:------------------------------------
   ## Return final table
-  return(dataset_new)
+  return(dataset_final)
   
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
