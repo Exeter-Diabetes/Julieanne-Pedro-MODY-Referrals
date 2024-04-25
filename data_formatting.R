@@ -1271,13 +1271,9 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
         FALSE
       ),
       M = ifelse(
-        is.na(Gene) & MODY_tested == FALSE,
-        NA,
-        ifelse(
-          is.na(Gene) & MODY_tested == TRUE,
-          0,
-          1
-        )
+        is.na(Gene),
+        0,
+        1
       )
     )
   
