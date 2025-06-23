@@ -73,7 +73,7 @@
 #' 
 #' @export
 formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE, id = FALSE) {
-  browser()
+  
   ### Function checks
   ## Print out diagnosis
   if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
