@@ -19,6 +19,7 @@
 #' @param investigate 'True' or 'False' variable which when TRUE, ignores the variables type, 
 #'            ethnicity and proband and outputs a table with rows for individual patients and 
 #'            columns for each of the variables that should be investigated in the records.
+#' @param id TRUE or FALSE flag on whether to include ID column
 #'
 #' @return dataset ready for analysis
 #'
@@ -71,8 +72,8 @@
 #' 
 #' 
 #' @export
-formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE) {
-
+formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicity_groups_genetics, ethnicity_labels_stated, ethnicity_labels_genetics, diagnosis = FALSE, type = NULL, ethnicity = NULL, biomarkers = "C+/A-", gene_type = "Primary", gene_variable = FALSE, proband = NULL, pardm_breakdown = FALSE, investigate = FALSE, id = FALSE) {
+  browser()
   ### Function checks
   ## Print out diagnosis
   if (!(diagnosis %in% c(FALSE, TRUE))) {stop("'diagnosis' must be defined: 'TRUE' or 'FALSE'.")}
@@ -1428,12 +1429,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
+    vars_select <- c("MODYNo", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
-    return(dataset_formatted %>%
-             select(all_of(vars_select))
+    return(
+      
+      if (isTRUE(id)) {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          rename("id" = MODYNo)
+        
+      } else {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          select(-MODYNo)
+        
+      }
+      
     )
     
   }
@@ -1445,12 +1460,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
+    vars_select <- c("MODYNo", "sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
-    return(dataset_formatted %>%
-             select(all_of(vars_select))
+    return(
+      
+      if (isTRUE(id)) {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          rename("id" = MODYNo)
+        
+      } else {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          select(-MODYNo)
+        
+      }
+      
     )
     
   }
@@ -1463,12 +1492,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
+    vars_select <- c("MODYNo", "Eth5", "Eth10", "sex", "bmi", "agedx", "hba1c", "pardm", "agerec", "insoroha", "C", "A", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
-    return(dataset_formatted %>%
-             select(all_of(vars_select))
+    return(
+      
+      if (isTRUE(id)) {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          rename("id" = MODYNo)
+        
+      } else {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          select(-MODYNo)
+        
+      }
+      
     )
     
   }
@@ -1480,12 +1523,26 @@ formatting <- function(dataset, dataset.case_control, ethnicity_groups, ethnicit
       print(paste0("Patients n = ", nrow(dataset_formatted)))
     }
     
-    vars_select <- c("Eth5", "Eth10", "sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
+    vars_select <- c("MODYNo", "Eth5", "Eth10", "sex", "bmi", "agedx", "insoroha", "hba1c", "pardm", "agerec", "M")
     if (gene_variable == TRUE) {vars_select <- c(vars_select, "Gene")}
     if (pardm_breakdown == TRUE) {vars_select <- c(vars_select, "pardm_breakdown")}
     
-    return(dataset_formatted %>%
-             select(all_of(vars_select))
+    return(
+      
+      if (isTRUE(id)) {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          rename("id" = MODYNo)
+        
+      } else {
+        
+        dataset_formatted %>%
+          select(all_of(vars_select)) %>%
+          select(-MODYNo)
+        
+      }
+      
     )
     
   }
